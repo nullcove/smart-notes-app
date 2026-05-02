@@ -43,34 +43,32 @@ export function Sidebar({ view, activeTagId, tags, counts, onViewChange, onTagCl
 
   return (
     <div className="panel-sidebar" style={{ width: 210, display: "flex", flexDirection: "column", flexShrink: 0, overflow: "hidden" }}>
-      {/* Header */}
-      <div style={{ padding: "14px 12px 8px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid var(--border)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ width: 26, height: 26, borderRadius: 7, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+
+      {/* Brand header */}
+      <div style={{ padding: "12px 12px 10px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <Link href="/notes-next/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
+          <div style={{ width: 28, height: 28, borderRadius: 8, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <FileText size={13} color="white" />
           </div>
-          <span style={{ fontWeight: 800, fontSize: 14, background: "linear-gradient(135deg,var(--accent),#8b5cf6)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+          <span style={{ fontWeight: 800, fontSize: 14, letterSpacing: -0.3, background: "linear-gradient(90deg,var(--accent),#8b5cf6)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
             InsNote
           </span>
-        </div>
+        </Link>
         <div style={{ display: "flex", gap: 2 }}>
-          <button onClick={toggle} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: 5, color: "var(--text-muted)", display: "flex", alignItems: "center" }} title="Toggle theme">
+          <button onClick={toggle} style={{ background: "none", border: "none", cursor: "pointer", padding: 5, borderRadius: 6, color: "var(--text-muted)", display: "flex", alignItems: "center" }} title={dark ? "Light mode" : "Dark mode"}>
             {dark ? <Sun size={13} /> : <Moon size={13} />}
           </button>
-          <Link href="/notes-next/" style={{ background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: 5, color: "var(--text-muted)", display: "flex", alignItems: "center", textDecoration: "none" }} title="Home">
-            <Home size={13} />
-          </Link>
         </div>
       </div>
 
-      {/* Nav */}
+      {/* Nav items */}
       <div style={{ padding: "8px 8px 4px" }}>
         {navItems.map((item) => (
           <div key={item.id} className={`nav-item ${view === item.id ? "active" : ""}`} onClick={() => onViewChange(item.id)}>
             <item.icon size={13} strokeWidth={1.8} />
-            <span style={{ flex: 1 }}>{item.label}</span>
+            <span style={{ flex: 1, fontSize: 13 }}>{item.label}</span>
             {item.count > 0 && (
-              <span style={{ fontSize: 10, fontWeight: 600, background: view === item.id ? "rgba(99,102,241,0.15)" : "var(--bg-hover)", padding: "1px 6px", borderRadius: 10, color: view === item.id ? "var(--accent-text)" : "var(--text-muted)" }}>
+              <span style={{ fontSize: 10, fontWeight: 700, background: view === item.id ? "rgba(99,102,241,0.2)" : "var(--bg-hover)", padding: "1px 6px", borderRadius: 10, color: view === item.id ? "var(--accent-text)" : "var(--text-muted)" }}>
                 {item.count}
               </span>
             )}
@@ -84,7 +82,7 @@ export function Sidebar({ view, activeTagId, tags, counts, onViewChange, onTagCl
       <div style={{ padding: "0 8px", flex: 1, overflow: "auto" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 4px 4px 8px" }}>
           <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.9, color: "var(--text-muted)" }}>Tags</span>
-          <button onClick={() => setAddingTag(true)} style={{ background: "none", border: "none", cursor: "pointer", padding: 3, borderRadius: 4, color: "var(--text-muted)", display: "flex", alignItems: "center" }} title="Add tag">
+          <button onClick={() => setAddingTag(true)} style={{ background: "none", border: "none", cursor: "pointer", padding: 3, borderRadius: 4, color: "var(--text-muted)", display: "flex" }} title="New tag">
             <Plus size={12} />
           </button>
         </div>
@@ -97,14 +95,16 @@ export function Sidebar({ view, activeTagId, tags, counts, onViewChange, onTagCl
               onChange={(e) => setNewTagName(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") submitTag(); if (e.key === "Escape") { setAddingTag(false); setNewTagName(""); } }}
               onBlur={submitTag}
-              placeholder="Tag name..."
-              style={{ width: "100%", background: "var(--bg-editor)", border: "1px solid var(--accent)", borderRadius: 5, padding: "4px 8px", fontSize: 12, color: "var(--text-primary)", outline: "none" }}
+              placeholder="Tag name…"
+              style={{ width: "100%", background: "var(--bg-editor)", border: "1px solid var(--accent)", borderRadius: 5, padding: "5px 8px", fontSize: 12, color: "var(--text-primary)", outline: "none" }}
             />
           </div>
         )}
 
         {tags.length === 0 && !addingTag && (
-          <div style={{ padding: "6px 8px", fontSize: 11, color: "var(--text-muted)", fontStyle: "italic" }}>No tags yet</div>
+          <div style={{ padding: "6px 8px 4px", fontSize: 11, color: "var(--text-muted)", fontStyle: "italic" }}>
+            No tags yet — click + to add
+          </div>
         )}
 
         {tags.map((tag) => (
@@ -117,7 +117,7 @@ export function Sidebar({ view, activeTagId, tags, counts, onViewChange, onTagCl
             style={{ justifyContent: "space-between" }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}>
-              <Tag size={12} strokeWidth={1.8} />
+              <Tag size={11} strokeWidth={1.8} />
               <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 13 }}>{tag.name}</span>
             </div>
             {hoveredTag === tag.id && (
@@ -129,11 +129,16 @@ export function Sidebar({ view, activeTagId, tags, counts, onViewChange, onTagCl
         ))}
       </div>
 
-      {/* Footer */}
-      <div style={{ borderTop: "1px solid var(--border)", padding: "8px 10px" }}>
-        <button onClick={onShowShortcuts} style={{ width: "100%", background: "none", border: "1px solid var(--border)", borderRadius: 6, padding: "5px 10px", cursor: "pointer", color: "var(--text-muted)", fontSize: 11, display: "flex", alignItems: "center", gap: 6 }}>
-          <Keyboard size={11} /> Keyboard shortcuts
+      {/* Footer actions */}
+      <div style={{ borderTop: "1px solid var(--border)", padding: "8px 10px", display: "flex", flexDirection: "column", gap: 4 }}>
+        <button onClick={onShowShortcuts}
+          style={{ background: "none", border: "1px solid var(--border)", borderRadius: 7, padding: "6px 10px", cursor: "pointer", color: "var(--text-muted)", fontSize: 11, display: "flex", alignItems: "center", gap: 6, width: "100%" }}>
+          <Keyboard size={11} /> Shortcuts (⌘/)
         </button>
+        <Link href="/notes-next/"
+          style={{ border: "none", borderRadius: 7, padding: "6px 10px", cursor: "pointer", color: "var(--text-muted)", fontSize: 11, display: "flex", alignItems: "center", gap: 6, textDecoration: "none", background: "none" }}>
+          <Home size={11} /> Back to Home
+        </Link>
       </div>
     </div>
   );
