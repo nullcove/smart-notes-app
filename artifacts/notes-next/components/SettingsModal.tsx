@@ -4,10 +4,136 @@ import { useState, useCallback } from "react";
 import {
   X, Eye, EyeOff, CheckCircle, XCircle, Loader2,
   ExternalLink, Sparkles, Wifi, WifiOff, RefreshCw,
-  Server, Brain, Globe, Cpu, ChevronRight, AlertTriangle, Zap,
+  Server, Brain, Globe, Cpu, AlertTriangle, Zap, ChevronDown,
 } from "lucide-react";
+import { getActiveProvider, setActiveProvider } from "@/lib/ai-engine";
 
 interface Props { onClose: () => void; }
+
+// ─── All providers with their models ─────────────────────────────────────────
+
+const ALL_PROVIDERS_MODELS: Record<string, string[]> = {
+  openai: ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"],
+  anthropic: ["claude-3-5-sonnet-20241022", "claude-3-5-haiku-20241022", "claude-3-opus-20240229"],
+  gemini: ["gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.5-flash"],
+  groq: ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"],
+  mistral: ["mistral-large-latest", "mistral-small-latest", "codestral-latest"],
+  openrouter: ["openai/gpt-4o", "anthropic/claude-3.5-sonnet", "meta-llama/llama-3.1-405b"],
+  xai: ["grok-2", "grok-2-vision-1212", "grok-beta"],
+  cohere: ["command-r-plus", "command-r", "command-light"],
+  ollama: [],
+};
+
+const PROVIDER_NAMES: Record<string, string> = {
+  openai: "OpenAI", anthropic: "Anthropic", gemini: "Google Gemini",
+  groq: "Groq", mistral: "Mistral AI", openrouter: "OpenRouter",
+  xai: "xAI (Grok)", cohere: "Cohere", ollama: "Ollama",
+};
+
+const PROVIDER_EMOJIS: Record<string, string> = {
+  openai: "🤖", anthropic: "✦", gemini: "♊", groq: "⚡",
+  mistral: "🌊", openrouter: "🔀", xai: "𝕏", cohere: "🌀", ollama: "🖥",
+};
+
+// ─── Active Provider Selector ─────────────────────────────────────────────────
+
+function ActiveProviderSection() {
+  const [active, setActive] = useState(() => getActiveProvider());
+  const [expanded, setExpanded] = useState(!getActiveProvider());
+  const [selectedProvider, setSelectedProvider] = useState(active?.provider ?? "gemini");
+  const [selectedModel, setSelectedModel] = useState(active?.model ?? "");
+  const [customModel, setCustomModel] = useState("");
+
+  const providerModels = selectedProvider === "ollama"
+    ? ((): string[] => {
+        try { return JSON.parse(localStorage.getItem("smart-ins-note-ai-ollama-models") ?? "[]") as string[]; } catch { return []; }
+      })()
+    : ALL_PROVIDERS_MODELS[selectedProvider] ?? [];
+
+  function handleSave() {
+    const model = selectedProvider === "ollama"
+      ? (customModel || selectedModel || providerModels[0] || "llama3")
+      : (selectedModel || providerModels[0] || "");
+    const p = { provider: selectedProvider, model };
+    setActiveProvider(p);
+    setActive(p);
+    setExpanded(false);
+  }
+
+  if (!expanded && active) {
+    return (
+      <div style={{ margin: "14px 24px 0", padding: "12px 16px", borderRadius: 12, background: "linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.08))", border: "1px solid rgba(99,102,241,0.25)", display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ width: 34, height: 34, borderRadius: 9, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>
+          {PROVIDER_EMOJIS[active.provider] ?? "🤖"}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: 1 }}>Active AI Model</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {PROVIDER_NAMES[active.provider]} — {active.model}
+          </div>
+        </div>
+        <button onClick={() => setExpanded(true)} style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(99,102,241,0.3)", background: "rgba(99,102,241,0.1)", color: "#818cf8", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+          Change <ChevronDown size={12} />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ margin: "14px 24px 0", padding: "16px", borderRadius: 12, background: "rgba(99,102,241,0.05)", border: "1px solid rgba(99,102,241,0.2)" }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
+        <Sparkles size={14} color="#818cf8" /> Choose Active AI Model
+      </div>
+
+      {/* Provider grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, marginBottom: 12 }}>
+        {Object.keys(ALL_PROVIDERS_MODELS).map(pid => (
+          <button key={pid} onClick={() => { setSelectedProvider(pid); setSelectedModel(""); }}
+            style={{ padding: "8px 6px", borderRadius: 9, border: `1px solid ${selectedProvider === pid ? "rgba(99,102,241,0.5)" : "var(--border)"}`, background: selectedProvider === pid ? "rgba(99,102,241,0.12)" : "var(--bg-hover)", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, transition: "all 0.12s" }}>
+            <span style={{ fontSize: 18 }}>{PROVIDER_EMOJIS[pid]}</span>
+            <span style={{ fontSize: 10, fontWeight: 600, color: selectedProvider === pid ? "#818cf8" : "var(--text-muted)" }}>{PROVIDER_NAMES[pid]}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Model selector */}
+      {selectedProvider !== "ollama" && providerModels.length > 0 && (
+        <div style={{ marginBottom: 10 }}>
+          <label style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", display: "block", marginBottom: 5 }}>Model</label>
+          <select value={selectedModel || providerModels[0]} onChange={e => setSelectedModel(e.target.value)}
+            style={{ width: "100%", background: "var(--bg-editor)", border: "1px solid var(--border)", borderRadius: 9, padding: "8px 10px", fontSize: 13, color: "var(--text-primary)", outline: "none" }}>
+            {providerModels.map(m => <option key={m} value={m}>{m}</option>)}
+          </select>
+        </div>
+      )}
+
+      {selectedProvider === "ollama" && (
+        <div style={{ marginBottom: 10 }}>
+          <label style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", display: "block", marginBottom: 5 }}>Model name (e.g. llama3, mistral)</label>
+          <input value={customModel} onChange={e => setCustomModel(e.target.value)}
+            placeholder="llama3"
+            style={{ width: "100%", background: "var(--bg-editor)", border: "1px solid var(--border)", borderRadius: 9, padding: "8px 10px", fontSize: 13, color: "var(--text-primary)", outline: "none", boxSizing: "border-box", fontFamily: "monospace" }} />
+          {providerModels.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 6 }}>
+              {providerModels.map(m => (
+                <button key={m} onClick={() => setCustomModel(m)} style={{ padding: "3px 8px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg-hover)", cursor: "pointer", fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace" }}>{m}</button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div style={{ display: "flex", gap: 8 }}>
+        <button onClick={handleSave}
+          style={{ flex: 1, padding: "9px", borderRadius: 9, border: "none", background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "white", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+          Set as Active
+        </button>
+        {active && <button onClick={() => setExpanded(false)}
+          style={{ padding: "9px 14px", borderRadius: 9, border: "1px solid var(--border)", background: "var(--bg-hover)", color: "var(--text-muted)", fontSize: 13, cursor: "pointer" }}>Cancel</button>}
+      </div>
+    </div>
+  );
+}
 
 // ─── Provider definitions ────────────────────────────────────────────────────
 
@@ -377,9 +503,12 @@ export function SettingsModal({ onClose }: Props) {
           </button>
         </div>
 
+        {/* Active Provider */}
+        <ActiveProviderSection />
+
         {/* Privacy note */}
-        <div style={{ margin: "14px 24px 0", padding: "10px 14px", borderRadius: 10, background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.18)", fontSize: 12, color: "var(--text-muted)" }}>
-          🔒 All API keys are stored <strong style={{ color: "var(--text-primary)" }}>only in your browser</strong> (localStorage). They are never sent to our servers.
+        <div style={{ margin: "10px 24px 0", padding: "9px 14px", borderRadius: 10, background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.15)", fontSize: 11, color: "var(--text-muted)" }}>
+          🔒 API keys stored <strong style={{ color: "var(--text-primary)" }}>only in your browser</strong> — never sent to our servers.
         </div>
 
         {/* Tabs */}

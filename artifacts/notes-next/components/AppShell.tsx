@@ -10,6 +10,7 @@ import { Editor } from "./Editor";
 import { ShortcutsModal } from "./ShortcutsModal";
 import { SettingsModal } from "./SettingsModal";
 import { CommandPalette } from "./CommandPalette";
+import { ChatBot } from "./ChatBot";
 import { ToastContainer, type ToastItem, type ToastType } from "./Toast";
 import { useTheme } from "@/lib/providers";
 import Link from "next/link";
@@ -229,6 +230,14 @@ export function AppShell() {
         />
       )}
       <ToastContainer toasts={toasts} onRemove={removeToast} />
+      <ChatBot
+        notes={notes}
+        onCreateNote={(title, content) => createMutation.mutateAsync({ title, content })}
+        onUpdateNote={(id, fields) => updateMutation.mutateAsync({ id, ...fields })}
+        onDeleteNote={(id) => deleteMutation.mutateAsync(id)}
+        onOpenNote={(id) => { setSelectedId(id); setView("notes"); }}
+        onToast={addToast}
+      />
     </>
   );
 }
