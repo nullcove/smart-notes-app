@@ -7,6 +7,7 @@ import { Sidebar } from "./Sidebar";
 import { NoteList } from "./NoteList";
 import { Editor } from "./Editor";
 import { ShortcutsModal } from "./ShortcutsModal";
+import { SettingsModal } from "./SettingsModal";
 
 export type View = "notes" | "starred" | "archived" | "trash" | "pinned" | "tag";
 
@@ -17,6 +18,7 @@ export function AppShell() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   const { data: notes = [], isLoading: notesLoading } = useQuery({
     queryKey: ["notes"],
@@ -65,14 +67,14 @@ export function AppShell() {
     createMutation.mutate({ title: "", content: "" });
   }, [createMutation]);
 
-  // Global keyboard shortcuts
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       const meta = e.metaKey || e.ctrlKey;
       if (meta && e.key === "n") { e.preventDefault(); handleNewNote(); }
       if (meta && e.key === "k") { e.preventDefault(); document.querySelector<HTMLInputElement>(".search-input")?.focus(); }
       if (meta && e.key === "/") { e.preventDefault(); setShowShortcuts(s => !s); }
-      if (e.key === "Escape") { setShowShortcuts(false); }
+      if (meta && e.key === ",") { e.preventDefault(); setShowSettings(s => !s); }
+      if (e.key === "Escape") { setShowShortcuts(false); setShowSettings(false); }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
@@ -90,7 +92,6 @@ export function AppShell() {
     return !n.trashed && !n.archived;
   });
 
-  // Pinned first in "notes" view
   const sortedNotes = view === "notes"
     ? [...filteredNotes].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0))
     : filteredNotes;
@@ -104,33 +105,15 @@ export function AppShell() {
     [updateMutation]
   );
 
-  const handleToggleStar = useCallback(
-    (note: Note) => updateMutation.mutate({ id: note.id, starred: !note.starred }),
-    [updateMutation]
-  );
-  const handleTogglePin = useCallback(
-    (note: Note) => updateMutation.mutate({ id: note.id, pinned: !note.pinned }),
-    [updateMutation]
-  );
-  const handleToggleArchive = useCallback(
-    (note: Note) => updateMutation.mutate({ id: note.id, archived: !note.archived }),
-    [updateMutation]
-  );
-  const handleTrash = useCallback(
-    (note: Note) => {
-      updateMutation.mutate({ id: note.id, trashed: true });
-      if (selectedId === note.id) setSelectedId(null);
-    },
-    [updateMutation, selectedId]
-  );
-  const handleRestoreFromTrash = useCallback(
-    (note: Note) => updateMutation.mutate({ id: note.id, trashed: false }),
-    [updateMutation]
-  );
-  const handleDeleteForever = useCallback(
-    (id: string) => deleteMutation.mutate(id),
-    [deleteMutation]
-  );
+  const handleToggleStar = useCallback((note: Note) => updateMutation.mutate({ id: note.id, starred: !note.starred }), [updateMutation]);
+  const handleTogglePin = useCallback((note: Note) => updateMutation.mutate({ id: note.id, pinned: !note.pinned }), [updateMutation]);
+  const handleToggleArchive = useCallback((note: Note) => updateMutation.mutate({ id: note.id, archived: !note.archived }), [updateMutation]);
+  const handleTrash = useCallback((note: Note) => {
+    updateMutation.mutate({ id: note.id, trashed: true });
+    if (selectedId === note.id) setSelectedId(null);
+  }, [updateMutation, selectedId]);
+  const handleRestoreFromTrash = useCallback((note: Note) => updateMutation.mutate({ id: note.id, trashed: false }), [updateMutation]);
+  const handleDeleteForever = useCallback((id: string) => deleteMutation.mutate(id), [deleteMutation]);
 
   const counts = {
     notes: notes.filter((n) => !n.trashed && !n.archived).length,
@@ -143,41 +126,29 @@ export function AppShell() {
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
       <Sidebar
-        view={view}
-        activeTagId={activeTagId}
-        tags={tags}
-        counts={counts}
+        view={view} activeTagId={activeTagId} tags={tags} counts={counts}
         onViewChange={(v) => { setView(v); setSelectedId(null); setActiveTagId(null); }}
         onTagClick={(id) => { setView("tag"); setActiveTagId(id); setSelectedId(null); }}
         onCreateTag={(name) => createTagMutation.mutate({ name })}
         onDeleteTag={(id) => deleteTagMutation.mutate(id)}
         onShowShortcuts={() => setShowShortcuts(true)}
+        onOpenSettings={() => setShowSettings(true)}
       />
       <NoteList
-        notes={sortedNotes}
-        view={view}
-        search={search}
-        selectedId={selectedId}
-        loading={notesLoading}
-        onSelect={(id) => setSelectedId(id)}
-        onSearch={setSearch}
-        onNew={handleNewNote}
-        onToggleStar={handleToggleStar}
-        onTogglePin={handleTogglePin}
-        onArchive={handleToggleArchive}
-        onTrash={handleTrash}
-        onRestore={handleRestoreFromTrash}
-        onDeleteForever={handleDeleteForever}
+        notes={sortedNotes} view={view} search={search} selectedId={selectedId} loading={notesLoading}
+        onSelect={(id) => setSelectedId(id)} onSearch={setSearch} onNew={handleNewNote}
+        onToggleStar={handleToggleStar} onTogglePin={handleTogglePin}
+        onArchive={handleToggleArchive} onTrash={handleTrash}
+        onRestore={handleRestoreFromTrash} onDeleteForever={handleDeleteForever}
       />
       <Editor
-        note={selectedNote}
-        onChange={handleNoteChange}
-        onToggleStar={handleToggleStar}
-        onTogglePin={handleTogglePin}
-        onTrash={handleTrash}
-        onArchive={handleToggleArchive}
+        note={selectedNote} onChange={handleNoteChange}
+        onToggleStar={handleToggleStar} onTogglePin={handleTogglePin}
+        onTrash={handleTrash} onArchive={handleToggleArchive}
+        onOpenSettings={() => setShowSettings(true)}
       />
       {showShortcuts && <ShortcutsModal onClose={() => setShowShortcuts(false)} />}
+      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FileText, Star, Archive, Trash2, Tag, Plus, X, Sun, Moon, Pin, Keyboard, Home } from "lucide-react";
+import { FileText, Star, Archive, Trash2, Tag, Plus, X, Sun, Moon, Pin, Keyboard, Home, Settings } from "lucide-react";
 import { useTheme } from "@/lib/providers";
 import Link from "next/link";
 import type { View } from "./AppShell";
@@ -17,9 +17,10 @@ interface Props {
   onCreateTag: (name: string) => void;
   onDeleteTag: (id: string) => void;
   onShowShortcuts: () => void;
+  onOpenSettings: () => void;
 }
 
-export function Sidebar({ view, activeTagId, tags, counts, onViewChange, onTagClick, onCreateTag, onDeleteTag, onShowShortcuts }: Props) {
+export function Sidebar({ view, activeTagId, tags, counts, onViewChange, onTagClick, onCreateTag, onDeleteTag, onShowShortcuts, onOpenSettings }: Props) {
   const { dark, toggle } = useTheme();
   const [addingTag, setAddingTag] = useState(false);
   const [newTagName, setNewTagName] = useState("");
@@ -43,22 +44,19 @@ export function Sidebar({ view, activeTagId, tags, counts, onViewChange, onTagCl
 
   return (
     <div className="panel-sidebar" style={{ width: 210, display: "flex", flexDirection: "column", flexShrink: 0, overflow: "hidden" }}>
-
       {/* Brand header */}
       <div style={{ padding: "12px 12px 10px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <Link href="/notes-next/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
           <div style={{ width: 28, height: 28, borderRadius: 8, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <FileText size={13} color="white" />
           </div>
-          <span style={{ fontWeight: 800, fontSize: 14, letterSpacing: -0.3, background: "linear-gradient(90deg,var(--accent),#8b5cf6)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-            InsNote
+          <span style={{ fontWeight: 800, fontSize: 13, letterSpacing: -0.3, background: "linear-gradient(90deg,var(--accent),#8b5cf6)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+            Smart Ins-Note
           </span>
         </Link>
-        <div style={{ display: "flex", gap: 2 }}>
-          <button onClick={toggle} style={{ background: "none", border: "none", cursor: "pointer", padding: 5, borderRadius: 6, color: "var(--text-muted)", display: "flex", alignItems: "center" }} title={dark ? "Light mode" : "Dark mode"}>
-            {dark ? <Sun size={13} /> : <Moon size={13} />}
-          </button>
-        </div>
+        <button onClick={toggle} style={{ background: "none", border: "none", cursor: "pointer", padding: 5, borderRadius: 6, color: "var(--text-muted)", display: "flex", alignItems: "center" }} title={dark ? "Light mode" : "Dark mode"}>
+          {dark ? <Sun size={13} /> : <Moon size={13} />}
+        </button>
       </div>
 
       {/* Nav items */}
@@ -89,9 +87,7 @@ export function Sidebar({ view, activeTagId, tags, counts, onViewChange, onTagCl
 
         {addingTag && (
           <div style={{ padding: "4px 4px 6px" }}>
-            <input
-              autoFocus
-              value={newTagName}
+            <input autoFocus value={newTagName}
               onChange={(e) => setNewTagName(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") submitTag(); if (e.key === "Escape") { setAddingTag(false); setNewTagName(""); } }}
               onBlur={submitTag}
@@ -108,14 +104,12 @@ export function Sidebar({ view, activeTagId, tags, counts, onViewChange, onTagCl
         )}
 
         {tags.map((tag) => (
-          <div
-            key={tag.id}
+          <div key={tag.id}
             className={`nav-item ${view === "tag" && activeTagId === tag.id ? "active" : ""}`}
             onClick={() => onTagClick(tag.id)}
             onMouseEnter={() => setHoveredTag(tag.id)}
             onMouseLeave={() => setHoveredTag(null)}
-            style={{ justifyContent: "space-between" }}
-          >
+            style={{ justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}>
               <Tag size={11} strokeWidth={1.8} />
               <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 13 }}>{tag.name}</span>
@@ -130,7 +124,11 @@ export function Sidebar({ view, activeTagId, tags, counts, onViewChange, onTagCl
       </div>
 
       {/* Footer actions */}
-      <div style={{ borderTop: "1px solid var(--border)", padding: "8px 10px", display: "flex", flexDirection: "column", gap: 4 }}>
+      <div style={{ borderTop: "1px solid var(--border)", padding: "8px 10px", display: "flex", flexDirection: "column", gap: 3 }}>
+        <button onClick={onOpenSettings}
+          style={{ background: "linear-gradient(135deg,rgba(99,102,241,0.12),rgba(139,92,246,0.12))", border: "1px solid rgba(99,102,241,0.25)", borderRadius: 8, padding: "7px 10px", cursor: "pointer", color: "#818cf8", fontSize: 11, display: "flex", alignItems: "center", gap: 6, width: "100%", fontWeight: 600 }}>
+          <Settings size={11} /> AI Settings (⌘,)
+        </button>
         <button onClick={onShowShortcuts}
           style={{ background: "none", border: "1px solid var(--border)", borderRadius: 7, padding: "6px 10px", cursor: "pointer", color: "var(--text-muted)", fontSize: 11, display: "flex", alignItems: "center", gap: 6, width: "100%" }}>
           <Keyboard size={11} /> Shortcuts (⌘/)
