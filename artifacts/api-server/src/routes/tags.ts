@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { requireAuth } from "../middleware/auth";
+import { optionalAuth } from "../middleware/auth";
 
 const router: IRouter = Router();
 
@@ -19,7 +19,7 @@ function mapTag(n: Record<string, unknown>) {
   return { id: n["id"], name: n["name"], color: n["color"], createdAt: n["created_at"] };
 }
 
-router.get("/tags", requireAuth, async (req, res) => {
+router.get("/tags", optionalAuth, async (req, res) => {
   try {
     const response = await fetch(
       `${tagsUrl()}?order=name.asc`,
@@ -34,7 +34,7 @@ router.get("/tags", requireAuth, async (req, res) => {
   }
 });
 
-router.post("/tags", requireAuth, async (req, res) => {
+router.post("/tags", optionalAuth, async (req, res) => {
   try {
     const { name, color } = req.body as { name: string; color?: string };
     if (!name?.trim()) return res.status(400).json({ error: "name is required" });
@@ -52,7 +52,7 @@ router.post("/tags", requireAuth, async (req, res) => {
   }
 });
 
-router.delete("/tags/:id", requireAuth, async (req, res) => {
+router.delete("/tags/:id", optionalAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const response = await fetch(

@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { CreateNoteBody, DeleteNoteParams, UpdateNoteParams } from "@workspace/api-zod";
 import { z } from "zod";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, optionalAuth } from "../middleware/auth";
 
 const router: IRouter = Router();
 
@@ -35,7 +35,7 @@ function mapNote(n: Record<string, unknown>) {
   };
 }
 
-router.get("/notes", requireAuth, async (req, res) => {
+router.get("/notes", optionalAuth, async (req, res) => {
   try {
     const response = await fetch(
       `${notesUrl()}?order=updated_at.desc`,
@@ -54,7 +54,7 @@ router.get("/notes", requireAuth, async (req, res) => {
   }
 });
 
-router.post("/notes", requireAuth, async (req, res) => {
+router.post("/notes", optionalAuth, async (req, res) => {
   try {
     const body = CreateNoteBody.parse(req.body);
     const response = await fetch(notesUrl(), {
@@ -96,7 +96,7 @@ const UpdateNoteBody = z.object({
   pinned: z.boolean().optional(),
 });
 
-router.patch("/notes/:id", requireAuth, async (req, res) => {
+router.patch("/notes/:id", optionalAuth, async (req, res) => {
   try {
     const { id } = UpdateNoteParams.parse(req.params);
     const body = UpdateNoteBody.parse(req.body);
@@ -126,7 +126,7 @@ router.patch("/notes/:id", requireAuth, async (req, res) => {
   }
 });
 
-router.delete("/notes/:id", requireAuth, async (req, res) => {
+router.delete("/notes/:id", optionalAuth, async (req, res) => {
   try {
     const { id } = DeleteNoteParams.parse(req.params);
     const response = await fetch(
