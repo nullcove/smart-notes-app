@@ -58,6 +58,7 @@ function ActiveProviderSection() {
     setActiveProvider(p);
     setActive(p);
     setExpanded(false);
+    window.dispatchEvent(new Event("ai-provider-changed"));
   }
 
   if (!expanded && active) {
@@ -348,8 +349,14 @@ function OllamaPanel() {
       if (!vRes.ok) throw new Error(`HTTP ${vRes.status}`);
       const vData = await vRes.json() as { version?: string };
       setPingMs(ms); setVersion(vData.version ?? "unknown");
+      let detectedModels: OllamaModel[] = [];
       const mRes = await fetch(`${base}/api/tags`, { signal: AbortSignal.timeout(10000) });
-      if (mRes.ok) { const md = await mRes.json() as { models?: OllamaModel[] }; setModels(md.models ?? []); }
+      if (mRes.ok) { const md = await mRes.json() as { models?: OllamaModel[] }; detectedModels = md.models ?? []; }
+      setModels(detectedModels);
+      // Auto-set Ollama as active provider with first detected model
+      const firstModel = detectedModels[0]?.name ?? "llama3";
+      setActiveProvider({ provider: "ollama", model: firstModel });
+      window.dispatchEvent(new Event("ai-provider-changed"));
       setStatus("ok"); saveOllamaUrl(base); setSavedUrl(base); setUrl(base);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Connection failed";

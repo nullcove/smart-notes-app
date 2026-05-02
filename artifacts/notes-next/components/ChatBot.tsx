@@ -51,10 +51,22 @@ export function ChatBot({ notes, onCreateNote, onUpdateNote, onDeleteNote, onOpe
   const notesRef = useRef<NoteRef[]>(notes);
   notesRef.current = notes;
 
-  const active = getActiveProvider();
+  const [active, setActive] = useState(() => getActiveProvider());
+
+  // Re-read active provider whenever localStorage changes (e.g. after Settings save)
+  useEffect(() => {
+    function refresh() { setActive(getActiveProvider()); }
+    window.addEventListener("storage", refresh);
+    window.addEventListener("ai-provider-changed", refresh);
+    return () => {
+      window.removeEventListener("storage", refresh);
+      window.removeEventListener("ai-provider-changed", refresh);
+    };
+  }, []);
 
   useEffect(() => {
     if (open) {
+      setActive(getActiveProvider()); // always re-check when chat opens
       setTimeout(() => inputRef.current?.focus(), 100);
       bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }
