@@ -8,8 +8,8 @@ import {
   BarChart2, ChevronDown, Cpu, Wand2, Settings, LogIn
 } from "lucide-react";
 
-const APP_LINK = "/notes-next/notes";
-const AUTH_LINK = "/notes-next/auth";
+const APP_LINK = "/notes";
+const AUTH_LINK = "/auth";
 
 const features = [
   { icon: Eye, title: "Markdown Preview", desc: "Instant markdown rendering with headings, bold, lists, tables, and code blocks." },

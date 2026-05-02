@@ -25,7 +25,7 @@ export function AuthPage() {
         ? await apiLogin(email, password)
         : await apiRegister(email, password, name);
       saveAuth(result.token, result.user);
-      router.push("/notes-next/notes");
+      router.push("/notes");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -40,7 +40,7 @@ export function AuthPage() {
       <div style={{ position: "absolute", bottom: "-20%", right: "20%", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle,rgba(139,92,246,0.1),transparent 70%)", pointerEvents: "none" }} />
 
       {/* Back to home */}
-      <Link href="/notes-next/" style={{ position: "absolute", top: 24, left: 24, display: "flex", alignItems: "center", gap: 7, color: "#64748b", textDecoration: "none", fontSize: 13, fontWeight: 500 }}>
+      <Link href="/" style={{ position: "absolute", top: 24, left: 24, display: "flex", alignItems: "center", gap: 7, color: "#64748b", textDecoration: "none", fontSize: 13, fontWeight: 500 }}>
         <ArrowLeft size={14} /> Back to Home
       </Link>
 
@@ -141,7 +141,7 @@ export function AuthPage() {
       </div>
 
       <p style={{ marginTop: 20, fontSize: 12, color: "#1e293b" }}>
-        Or <Link href="/notes-next/notes" style={{ color: "#6366f1", textDecoration: "none" }}>continue without account →</Link>
+        Or <Link href="/notes" style={{ color: "#6366f1", textDecoration: "none" }}>continue without account →</Link>
       </p>
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>

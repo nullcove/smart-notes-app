@@ -46,7 +46,7 @@ export function Sidebar({ view, activeTagId, tags, counts, onViewChange, onTagCl
     <div className="panel-sidebar" style={{ width: 210, display: "flex", flexDirection: "column", flexShrink: 0, overflow: "hidden" }}>
       {/* Brand header */}
       <div style={{ padding: "12px 12px 10px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <Link href="/notes-next/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
+        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
           <div style={{ width: 28, height: 28, borderRadius: 8, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <FileText size={13} color="white" />
           </div>
@@ -133,7 +133,7 @@ export function Sidebar({ view, activeTagId, tags, counts, onViewChange, onTagCl
           style={{ background: "none", border: "1px solid var(--border)", borderRadius: 7, padding: "6px 10px", cursor: "pointer", color: "var(--text-muted)", fontSize: 11, display: "flex", alignItems: "center", gap: 6, width: "100%" }}>
           <Keyboard size={11} /> Shortcuts (⌘/)
         </button>
-        <Link href="/notes-next/"
+        <Link href="/"
           style={{ border: "none", borderRadius: 7, padding: "6px 10px", cursor: "pointer", color: "var(--text-muted)", fontSize: 11, display: "flex", alignItems: "center", gap: 6, textDecoration: "none", background: "none" }}>
           <Home size={11} /> Back to Home
         </Link>
