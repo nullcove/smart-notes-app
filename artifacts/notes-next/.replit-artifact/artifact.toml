@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/notes-next/"
+title = "Standard Notes Clone (Next.js)"
+version = "1.0.0"
+id = "artifacts/notes-next"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/notes-next/" ]
+localPort = 23708
+
+[services.development]
+run = "pnpm --filter @workspace/notes-next run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/notes-next", "run", "build" ]
+publicDir = "artifacts/notes-next/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23708"
+BASE_PATH = "/notes-next/"
