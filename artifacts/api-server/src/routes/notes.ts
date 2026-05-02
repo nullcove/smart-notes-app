@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { CreateNoteBody, DeleteNoteParams } from "@workspace/api-zod";
+import { z } from "zod";
 
 const router: IRouter = Router();
 
@@ -21,10 +22,23 @@ function notesUrl(suffix = "") {
   return `${INSFORGE_API_BASE_URL}/api/database/records/notes${suffix}`;
 }
 
+function mapNote(n: Record<string, unknown>) {
+  return {
+    id: n["id"],
+    title: n["title"],
+    content: n["content"],
+    starred: n["starred"] ?? false,
+    archived: n["archived"] ?? false,
+    trashed: n["trashed"] ?? false,
+    createdAt: n["created_at"],
+    updatedAt: n["updated_at"],
+  };
+}
+
 router.get("/notes", async (req, res) => {
   try {
     const response = await fetch(
-      `${notesUrl()}?order=created_at.desc`,
+      `${notesUrl()}?order=updated_at.desc`,
       { headers: baseHeaders }
     );
     const raw = await response.json() as Array<Record<string, unknown>>;
@@ -34,15 +48,7 @@ router.get("/notes", async (req, res) => {
       return res.status(500).json({ error: "Failed to fetch notes" });
     }
 
-    const notes = (raw ?? []).map((n) => ({
-      id: n["id"],
-      title: n["title"],
-      content: n["content"],
-      createdAt: n["created_at"],
-      updatedAt: n["updated_at"],
-    }));
-
-    res.json(notes);
+    res.json((raw ?? []).map(mapNote));
   } catch (err) {
     req.log.error({ err }, "Error fetching notes");
     res.status(500).json({ error: "Internal server error" });
@@ -59,7 +65,7 @@ router.post("/notes", async (req, res) => {
         ...baseHeaders,
         "Prefer": "return=representation",
       },
-      body: JSON.stringify([{ title: body.title, content: body.content }]),
+      body: JSON.stringify([{ title: body.title, content: body.content, starred: false, archived: false, trashed: false }]),
     });
 
     const raw = await response.json() as Array<Record<string, unknown>>;
@@ -74,15 +80,50 @@ router.post("/notes", async (req, res) => {
       return res.status(500).json({ error: "Note creation returned no data" });
     }
 
-    res.status(201).json({
-      id: created["id"],
-      title: created["title"],
-      content: created["content"],
-      createdAt: created["created_at"],
-      updatedAt: created["updated_at"],
-    });
+    res.status(201).json(mapNote(created));
   } catch (err) {
     req.log.error({ err }, "Error creating note");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+const UpdateNoteBody = z.object({
+  title: z.string().optional(),
+  content: z.string().optional(),
+  starred: z.boolean().optional(),
+  archived: z.boolean().optional(),
+  trashed: z.boolean().optional(),
+});
+
+router.patch("/notes/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const body = UpdateNoteBody.parse(req.body);
+
+    const response = await fetch(`${notesUrl()}?id=eq.${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: {
+        ...baseHeaders,
+        "Prefer": "return=representation",
+      },
+      body: JSON.stringify(body),
+    });
+
+    const raw = await response.json() as Array<Record<string, unknown>>;
+
+    if (!response.ok) {
+      req.log.error({ status: response.status, raw }, "Insforge PATCH note failed");
+      return res.status(500).json({ error: "Failed to update note" });
+    }
+
+    const updated = raw?.[0];
+    if (!updated) {
+      return res.status(404).json({ error: "Note not found" });
+    }
+
+    res.json(mapNote(updated));
+  } catch (err) {
+    req.log.error({ err }, "Error updating note");
     res.status(500).json({ error: "Internal server error" });
   }
 });
