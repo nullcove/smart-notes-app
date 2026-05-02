@@ -1,9 +1,5 @@
 import { Router, type IRouter } from "express";
-import {
-  GetNotesResponse,
-  CreateNoteBody,
-  DeleteNoteParams,
-} from "@workspace/api-zod";
+import { CreateNoteBody, DeleteNoteParams } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
@@ -16,36 +12,36 @@ if (!INSFORGE_API_KEY || !INSFORGE_API_BASE_URL) {
   );
 }
 
-const insforgeHeaders = {
-  "Content-Type": "application/json",
-  Authorization: `Bearer ${INSFORGE_API_KEY}`,
+const baseHeaders = {
   "x-api-key": INSFORGE_API_KEY,
+  "Content-Type": "application/json",
 };
 
-async function insforgeRequest(
-  path: string,
-  options: RequestInit = {}
-): Promise<Response> {
-  const url = `${INSFORGE_API_BASE_URL}${path}`;
-  return fetch(url, {
-    ...options,
-    headers: {
-      ...insforgeHeaders,
-      ...(options.headers || {}),
-    },
-  });
+function notesUrl(suffix = "") {
+  return `${INSFORGE_API_BASE_URL}/api/database/records/notes${suffix}`;
 }
 
 router.get("/notes", async (req, res) => {
   try {
-    const response = await insforgeRequest("/notes");
+    const response = await fetch(
+      `${notesUrl()}?order=created_at.desc`,
+      { headers: baseHeaders }
+    );
+    const raw = await response.json() as Array<Record<string, unknown>>;
+
     if (!response.ok) {
-      const text = await response.text();
-      req.log.error({ status: response.status, body: text }, "Insforge GET /notes failed");
-      return res.status(response.status).json({ error: "Failed to fetch notes from backend" });
+      req.log.error({ status: response.status, raw }, "Insforge GET notes failed");
+      return res.status(500).json({ error: "Failed to fetch notes" });
     }
-    const raw = await response.json();
-    const notes = GetNotesResponse.parse(raw);
+
+    const notes = (raw ?? []).map((n) => ({
+      id: n["id"],
+      title: n["title"],
+      content: n["content"],
+      createdAt: n["created_at"],
+      updatedAt: n["updated_at"],
+    }));
+
     res.json(notes);
   } catch (err) {
     req.log.error({ err }, "Error fetching notes");
@@ -56,17 +52,35 @@ router.get("/notes", async (req, res) => {
 router.post("/notes", async (req, res) => {
   try {
     const body = CreateNoteBody.parse(req.body);
-    const response = await insforgeRequest("/notes", {
+
+    const response = await fetch(notesUrl(), {
       method: "POST",
-      body: JSON.stringify(body),
+      headers: {
+        ...baseHeaders,
+        "Prefer": "return=representation",
+      },
+      body: JSON.stringify([{ title: body.title, content: body.content }]),
     });
+
+    const raw = await response.json() as Array<Record<string, unknown>>;
+
     if (!response.ok) {
-      const text = await response.text();
-      req.log.error({ status: response.status, body: text }, "Insforge POST /notes failed");
-      return res.status(response.status).json({ error: "Failed to create note" });
+      req.log.error({ status: response.status, raw }, "Insforge POST notes failed");
+      return res.status(500).json({ error: "Failed to create note" });
     }
-    const note = await response.json();
-    res.status(201).json(note);
+
+    const created = raw?.[0];
+    if (!created) {
+      return res.status(500).json({ error: "Note creation returned no data" });
+    }
+
+    res.status(201).json({
+      id: created["id"],
+      title: created["title"],
+      content: created["content"],
+      createdAt: created["created_at"],
+      updatedAt: created["updated_at"],
+    });
   } catch (err) {
     req.log.error({ err }, "Error creating note");
     res.status(500).json({ error: "Internal server error" });
@@ -76,14 +90,18 @@ router.post("/notes", async (req, res) => {
 router.delete("/notes/:id", async (req, res) => {
   try {
     const { id } = DeleteNoteParams.parse(req.params);
-    const response = await insforgeRequest(`/notes/${id}`, {
+
+    const response = await fetch(`${notesUrl()}?id=eq.${encodeURIComponent(id)}`, {
       method: "DELETE",
+      headers: baseHeaders,
     });
+
     if (!response.ok) {
-      const text = await response.text();
-      req.log.error({ status: response.status, body: text }, "Insforge DELETE /notes/:id failed");
-      return res.status(response.status).json({ error: "Failed to delete note" });
+      const raw = await response.text();
+      req.log.error({ status: response.status, raw }, "Insforge DELETE note failed");
+      return res.status(500).json({ error: "Failed to delete note" });
     }
+
     res.json({ success: true, id });
   } catch (err) {
     req.log.error({ err }, "Error deleting note");
