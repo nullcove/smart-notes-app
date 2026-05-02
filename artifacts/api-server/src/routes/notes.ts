@@ -30,6 +30,7 @@ function mapNote(n: Record<string, unknown>) {
     starred: n["starred"] ?? false,
     archived: n["archived"] ?? false,
     trashed: n["trashed"] ?? false,
+    pinned: n["pinned"] ?? false,
     createdAt: n["created_at"],
     updatedAt: n["updated_at"],
   };
@@ -93,6 +94,7 @@ const UpdateNoteBody = z.object({
   starred: z.boolean().optional(),
   archived: z.boolean().optional(),
   trashed: z.boolean().optional(),
+  pinned: z.boolean().optional(),
 });
 
 router.patch("/notes/:id", async (req, res) => {
