@@ -1,0 +1,405 @@
+/* ════════════════════════════════════════════════════════════
+   SMART INS-NOTE  ·  300+ KEYFRAME ANIMATION LIBRARY
+   ════════════════════════════════════════════════════════════ */
+
+/* ── GROUP 1 : FLOAT (f01–f20) ── */
+@keyframes f01{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@keyframes f02{0%,100%{transform:translateY(0)}50%{transform:translateY(-18px)}}
+@keyframes f03{0%,100%{transform:translateY(0)}50%{transform:translateY(-26px)}}
+@keyframes f04{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-14px) rotate(2deg)}}
+@keyframes f05{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-14px) rotate(-2deg)}}
+@keyframes f06{0%,100%{transform:translate(0,0)}33%{transform:translate(10px,-12px)}66%{transform:translate(-8px,-8px)}}
+@keyframes f07{0%,100%{transform:translate(0,0)}33%{transform:translate(-10px,-15px)}66%{transform:translate(6px,-6px)}}
+@keyframes f08{0%,100%{transform:translate(0,0)}25%{transform:translate(8px,-8px)}75%{transform:translate(-8px,4px)}}
+@keyframes f09{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-12px) scale(1.04)}}
+@keyframes f10{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-12px) scale(0.97)}}
+@keyframes f11{0%,100%{transform:translateY(0) skewX(0)}50%{transform:translateY(-10px) skewX(1deg)}}
+@keyframes f12{0%{transform:translateY(0)}25%{transform:translateY(-8px)}50%{transform:translateY(-16px)}75%{transform:translateY(-8px)}100%{transform:translateY(0)}}
+@keyframes f13{0%,100%{transform:translate(0,0) rotate(0)}50%{transform:translate(12px,-10px) rotate(3deg)}}
+@keyframes f14{0%,100%{transform:translate(0,0) rotate(0)}50%{transform:translate(-12px,-10px) rotate(-3deg)}}
+@keyframes f15{0%,100%{transform:translateY(0) scaleX(1)}50%{transform:translateY(-14px) scaleX(0.96)}}
+@keyframes f16{0%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}60%{transform:translateY(-12px)}80%{transform:translateY(-8px)}}
+@keyframes f17{0%,100%{transform:translate(0,0)}20%{transform:translate(5px,-5px)}40%{transform:translate(-5px,-10px)}60%{transform:translate(8px,-15px)}80%{transform:translate(-3px,-8px)}}
+@keyframes f18{0%,100%{transform:translateY(0) perspective(400px) rotateX(0)}50%{transform:translateY(-12px) perspective(400px) rotateX(3deg)}}
+@keyframes f19{0%,100%{transform:translateY(0)}50%{transform:translateY(-22px)}75%{transform:translateY(-16px)}}
+@keyframes f20{0%,100%{transform:translate(0,0) scale(1) rotate(0)}50%{transform:translate(6px,-16px) scale(1.05) rotate(2deg)}}
+
+/* ── GROUP 2 : GLOW / PULSE (g01–g25) ── */
+@keyframes g01{0%,100%{box-shadow:0 0 10px rgba(99,102,241,.3)}50%{box-shadow:0 0 30px rgba(99,102,241,.7)}}
+@keyframes g02{0%,100%{box-shadow:0 0 10px rgba(139,92,246,.3)}50%{box-shadow:0 0 35px rgba(139,92,246,.75)}}
+@keyframes g03{0%,100%{box-shadow:0 0 10px rgba(232,121,249,.3)}50%{box-shadow:0 0 32px rgba(232,121,249,.7)}}
+@keyframes g04{0%,100%{box-shadow:0 0 10px rgba(96,165,250,.3)}50%{box-shadow:0 0 30px rgba(96,165,250,.7)}}
+@keyframes g05{0%,100%{box-shadow:0 0 10px rgba(52,211,153,.3)}50%{box-shadow:0 0 30px rgba(52,211,153,.7)}}
+@keyframes g06{0%,100%{box-shadow:0 0 10px rgba(251,191,36,.3)}50%{box-shadow:0 0 30px rgba(251,191,36,.7)}}
+@keyframes g07{0%,100%{box-shadow:0 0 10px rgba(244,114,182,.3)}50%{box-shadow:0 0 30px rgba(244,114,182,.7)}}
+@keyframes g08{0%,100%{filter:drop-shadow(0 0 4px rgba(99,102,241,.3))}50%{filter:drop-shadow(0 0 14px rgba(99,102,241,.8))}}
+@keyframes g09{0%,100%{filter:drop-shadow(0 0 4px rgba(232,121,249,.3))}50%{filter:drop-shadow(0 0 14px rgba(232,121,249,.8))}}
+@keyframes g10{0%,100%{box-shadow:0 0 0 0 rgba(99,102,241,.4)}50%{box-shadow:0 0 0 20px rgba(99,102,241,0)}}
+@keyframes g11{0%,100%{box-shadow:0 0 0 0 rgba(139,92,246,.4)}50%{box-shadow:0 0 0 24px rgba(139,92,246,0)}}
+@keyframes g12{0%,100%{box-shadow:0 0 0 0 rgba(52,211,153,.4)}50%{box-shadow:0 0 0 20px rgba(52,211,153,0)}}
+@keyframes g13{0%,100%{opacity:.4;filter:blur(0)}50%{opacity:1;filter:blur(1px)}}
+@keyframes g14{0%,100%{text-shadow:0 0 8px rgba(99,102,241,.4)}50%{text-shadow:0 0 22px rgba(99,102,241,.9)}}
+@keyframes g15{0%,100%{text-shadow:0 0 8px rgba(232,121,249,.4)}50%{text-shadow:0 0 22px rgba(232,121,249,.9)}}
+@keyframes g16{0%,100%{text-shadow:0 0 0 transparent}50%{text-shadow:0 0 20px rgba(165,180,252,.8),0 0 40px rgba(99,102,241,.4)}}
+@keyframes g17{0%,100%{box-shadow:0 4px 15px rgba(99,102,241,.2)}50%{box-shadow:0 8px 40px rgba(99,102,241,.5),0 0 60px rgba(139,92,246,.2)}}
+@keyframes g18{0%,100%{box-shadow:inset 0 0 15px rgba(99,102,241,.1)}50%{box-shadow:inset 0 0 40px rgba(99,102,241,.3)}}
+@keyframes g19{0%{box-shadow:0 0 8px rgba(99,102,241,.2)}25%{box-shadow:0 0 15px rgba(232,121,249,.4)}50%{box-shadow:0 0 25px rgba(96,165,250,.5)}75%{box-shadow:0 0 15px rgba(52,211,153,.4)}100%{box-shadow:0 0 8px rgba(99,102,241,.2)}}
+@keyframes g20{0%,100%{filter:brightness(1)}50%{filter:brightness(1.15)}}
+@keyframes g21{0%,100%{filter:brightness(1) saturate(1)}50%{filter:brightness(1.1) saturate(1.4)}}
+@keyframes g22{0%,100%{opacity:.6}50%{opacity:1}}
+@keyframes g23{0%,100%{opacity:.8;transform:scale(1)}50%{opacity:1;transform:scale(1.02)}}
+@keyframes g24{0%,100%{box-shadow:0 0 20px rgba(99,102,241,.15),0 0 40px rgba(139,92,246,.08)}50%{box-shadow:0 0 40px rgba(99,102,241,.4),0 0 80px rgba(139,92,246,.2)}}
+@keyframes g25{0%{filter:drop-shadow(0 0 2px rgba(99,102,241,0))}50%{filter:drop-shadow(0 0 10px rgba(99,102,241,.6)) drop-shadow(0 0 20px rgba(139,92,246,.4))}100%{filter:drop-shadow(0 0 2px rgba(99,102,241,0))}}
+
+/* ── GROUP 3 : GRADIENT / COLOR SHIFT (gr01–gr20) ── */
+@keyframes gr01{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+@keyframes gr02{0%{background-position:0% 0%}50%{background-position:100% 100%}100%{background-position:0% 0%}}
+@keyframes gr03{0%{background-position:0% 50%}33%{background-position:100% 0%}66%{background-position:0% 100%}100%{background-position:0% 50%}}
+@keyframes gr04{0%,100%{filter:hue-rotate(0deg)}50%{filter:hue-rotate(30deg)}}
+@keyframes gr05{0%,100%{filter:hue-rotate(0deg)}100%{filter:hue-rotate(360deg)}}
+@keyframes gr06{0%,100%{filter:hue-rotate(0deg) saturate(1)}50%{filter:hue-rotate(15deg) saturate(1.3)}}
+@keyframes gr07{0%{color:#a5b4fc}25%{color:#e879f9}50%{color:#60a5fa}75%{color:#6ee7b7}100%{color:#a5b4fc}}
+@keyframes gr08{0%,100%{background-color:rgba(99,102,241,.1)}50%{background-color:rgba(139,92,246,.2)}}
+@keyframes gr09{0%{border-color:rgba(99,102,241,.2)}25%{border-color:rgba(139,92,246,.35)}50%{border-color:rgba(232,121,249,.3)}75%{border-color:rgba(96,165,250,.35)}100%{border-color:rgba(99,102,241,.2)}}
+@keyframes gr10{0%,100%{background-position:0% 50%;opacity:.06}50%{background-position:100% 50%;opacity:.12}}
+@keyframes gr11{0%{filter:hue-rotate(0deg) brightness(1)}50%{filter:hue-rotate(20deg) brightness(1.08)}100%{filter:hue-rotate(0deg) brightness(1)}}
+@keyframes gr12{0%,100%{background-size:100% 100%}50%{background-size:200% 200%}}
+@keyframes gr13{0%{color:rgba(165,180,252,1)}50%{color:rgba(240,171,252,1)}100%{color:rgba(165,180,252,1)}}
+@keyframes gr14{0%,100%{stop-color:#6366f1}50%{stop-color:#e879f9}}
+@keyframes gr15{0%,100%{background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(139,92,246,.08))}50%{background:linear-gradient(135deg,rgba(139,92,246,.15),rgba(232,121,249,.1))}}
+@keyframes gr16{0%,100%{border-image:linear-gradient(135deg,rgba(99,102,241,.3),rgba(139,92,246,.3)) 1}50%{border-image:linear-gradient(135deg,rgba(232,121,249,.5),rgba(96,165,250,.4)) 1}}
+@keyframes gr17{0%{opacity:0.04}33%{opacity:0.08}66%{opacity:0.12}100%{opacity:0.04}}
+@keyframes gr18{0%,100%{background-position:0% 0%}50%{background-position:200% 200%}}
+@keyframes gr19{0%{filter:sepia(0) hue-rotate(0)}50%{filter:sepia(.05) hue-rotate(10deg)}100%{filter:sepia(0) hue-rotate(0)}}
+@keyframes gr20{0%,100%{background:conic-gradient(from 0deg,rgba(99,102,241,.05),rgba(139,92,246,.08),rgba(232,121,249,.05))}50%{background:conic-gradient(from 180deg,rgba(232,121,249,.05),rgba(99,102,241,.08),rgba(139,92,246,.05))}}
+
+/* ── GROUP 4 : ROTATE / SPIN (ro01–ro15) ── */
+@keyframes ro01{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+@keyframes ro02{0%{transform:rotate(0)}100%{transform:rotate(-360deg)}}
+@keyframes ro03{0%,100%{transform:rotate(0)}50%{transform:rotate(6deg)}}
+@keyframes ro04{0%,100%{transform:rotate(0)}50%{transform:rotate(-6deg)}}
+@keyframes ro05{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+@keyframes ro06{0%{transform:rotate(0) scale(1)}50%{transform:rotate(180deg) scale(1.1)}100%{transform:rotate(360deg) scale(1)}}
+@keyframes ro07{0%,100%{transform:rotateY(0)}50%{transform:rotateY(15deg)}}
+@keyframes ro08{0%,100%{transform:rotateX(0)}50%{transform:rotateX(12deg)}}
+@keyframes ro09{0%,100%{transform:rotate(0) translateX(0)}50%{transform:rotate(360deg) translateX(0)}}
+@keyframes ro10{0%{transform:rotateZ(0)}25%{transform:rotateZ(2deg)}75%{transform:rotateZ(-2deg)}100%{transform:rotateZ(0)}}
+@keyframes ro11{0%,100%{transform:perspective(600px) rotateY(0)}50%{transform:perspective(600px) rotateY(8deg)}}
+@keyframes ro12{0%,100%{transform:perspective(600px) rotateX(0)}50%{transform:perspective(600px) rotateX(6deg)}}
+@keyframes ro13{0%{transform:rotate(0) scale(1)}100%{transform:rotate(360deg) scale(1)}}
+@keyframes ro14{0%,100%{transform:rotate(-1deg) translateY(0)}50%{transform:rotate(1deg) translateY(-4px)}}
+@keyframes ro15{0%{transform:rotate(0) skewX(0)}50%{transform:rotate(180deg) skewX(2deg)}100%{transform:rotate(360deg) skewX(0)}}
+
+/* ── GROUP 5 : SCALE (sc01–sc15) ── */
+@keyframes sc01{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+@keyframes sc02{0%,100%{transform:scale(1)}50%{transform:scale(0.95)}}
+@keyframes sc03{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+@keyframes sc04{0%,100%{transform:scale(1)}50%{transform:scale(1.02)}}
+@keyframes sc05{0%{transform:scale(0)}100%{transform:scale(1)}}
+@keyframes sc06{0%{transform:scale(0);opacity:0}100%{transform:scale(1);opacity:1}}
+@keyframes sc07{0%,100%{transform:scaleX(1)}50%{transform:scaleX(1.06)}}
+@keyframes sc08{0%,100%{transform:scaleY(1)}50%{transform:scaleY(1.08)}}
+@keyframes sc09{0%,100%{transform:scale(1)}30%{transform:scale(1.08)}60%{transform:scale(.97)}}
+@keyframes sc10{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.06) rotate(3deg)}}
+@keyframes sc11{0%{transform:scale(0.8);opacity:0}100%{transform:scale(1);opacity:1}}
+@keyframes sc12{0%{transform:scale(1.2);opacity:0}100%{transform:scale(1);opacity:1}}
+@keyframes sc13{0%,100%{transform:scale(1)}25%{transform:scale(1.04)}75%{transform:scale(.98)}}
+@keyframes sc14{0%,100%{transform:scale(1) translateY(0)}50%{transform:scale(1.05) translateY(-3px)}}
+@keyframes sc15{0%,100%{transform:scale(1)}20%{transform:scale(1.12)}40%{transform:scale(.96)}60%{transform:scale(1.04)}80%{transform:scale(.99)}}
+
+/* ── GROUP 6 : SHIMMER / SHINE (sh01–sh20) ── */
+@keyframes sh01{0%{background-position:-200% center}100%{background-position:200% center}}
+@keyframes sh02{0%{background-position:200% center}100%{background-position:-200% center}}
+@keyframes sh03{0%{background-position:-300% 0}100%{background-position:300% 0}}
+@keyframes sh04{0%{transform:translateX(-100%) rotate(30deg)}100%{transform:translateX(400%) rotate(30deg)}}
+@keyframes sh05{0%{transform:translateX(-100%) skewX(-20deg)}100%{transform:translateX(300%) skewX(-20deg)}}
+@keyframes sh06{0%{opacity:0;transform:translateX(-80%)}50%{opacity:1}100%{opacity:0;transform:translateX(80%)}}
+@keyframes sh07{0%,100%{background-position:0 0}50%{background-position:100% 100%}}
+@keyframes sh08{0%{left:-100%}100%{left:200%}}
+@keyframes sh09{0%{transform:skewX(-20deg) translateX(-200%)}100%{transform:skewX(-20deg) translateX(400%)}}
+@keyframes sh10{0%{opacity:0}40%{opacity:.8}60%{opacity:.8}100%{opacity:0}}
+@keyframes sh11{0%{background-position:-200% -200%}100%{background-position:200% 200%}}
+@keyframes sh12{0%{transform:translateX(-200%) rotate(45deg)}100%{transform:translateX(300%) rotate(45deg)}}
+@keyframes sh13{0%,100%{opacity:0}50%{opacity:.15}}
+@keyframes sh14{0%{transform:translateX(-150%) scaleX(.8)}100%{transform:translateX(250%) scaleX(.8)}}
+@keyframes sh15{0%{left:-60%;opacity:.8}100%{left:160%;opacity:0}}
+@keyframes sh16{0%{transform:rotate(45deg) translateX(-300%)}100%{transform:rotate(45deg) translateX(300%)}}
+@keyframes sh17{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+@keyframes sh18{0%{clip-path:inset(0 100% 0 0)}100%{clip-path:inset(0 0% 0 0)}}
+@keyframes sh19{0%,100%{background-position:0 0}50%{background-position:200% 0}}
+@keyframes sh20{0%{transform:translateX(-200%)}50%{opacity:1}100%{transform:translateX(200%);opacity:0}}
+
+/* ── GROUP 7 : SLIDE (sl01–sl20) ── */
+@keyframes sl01{from{transform:translateY(24px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes sl02{from{transform:translateY(-24px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes sl03{from{transform:translateX(-30px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes sl04{from{transform:translateX(30px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes sl05{from{transform:translate(-20px,20px);opacity:0}to{transform:translate(0,0);opacity:1}}
+@keyframes sl06{from{transform:translate(20px,20px);opacity:0}to{transform:translate(0,0);opacity:1}}
+@keyframes sl07{from{transform:translateY(40px) scale(.95);opacity:0}to{transform:translateY(0) scale(1);opacity:1}}
+@keyframes sl08{from{transform:translateX(-40px) scale(.95);opacity:0}to{transform:translateX(0) scale(1);opacity:1}}
+@keyframes sl09{from{transform:translateX(40px) scale(.95);opacity:0}to{transform:translateX(0) scale(1);opacity:1}}
+@keyframes sl10{0%{transform:translateY(60px);opacity:0}60%{transform:translateY(-6px);opacity:1}100%{transform:translateY(0);opacity:1}}
+@keyframes sl11{0%{transform:translateX(-60px);opacity:0}60%{transform:translateX(6px);opacity:1}100%{transform:translateX(0);opacity:1}}
+@keyframes sl12{0%{transform:translateX(60px);opacity:0}60%{transform:translateX(-6px);opacity:1}100%{transform:translateX(0);opacity:1}}
+@keyframes sl13{from{transform:translateY(-100%)}to{transform:translateY(0)}}
+@keyframes sl14{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes sl15{0%{max-height:0;opacity:0}100%{max-height:500px;opacity:1}}
+@keyframes sl16{0%{transform:translateY(16px) scale(.98);opacity:0}100%{transform:translateY(0) scale(1);opacity:1}}
+@keyframes sl17{0%{transform:translate(-10px,-10px) rotate(-2deg);opacity:0}100%{transform:translate(0,0) rotate(0);opacity:1}}
+@keyframes sl18{0%{transform:perspective(400px) rotateX(20deg) translateY(20px);opacity:0}100%{transform:perspective(400px) rotateX(0) translateY(0);opacity:1}}
+@keyframes sl19{0%{clip-path:inset(0 100% 0 0);opacity:1}100%{clip-path:inset(0 0% 0 0);opacity:1}}
+@keyframes sl20{0%{transform:translateY(8px);opacity:0}100%{transform:translateY(0);opacity:1}}
+
+/* ── GROUP 8 : BOUNCE (bo01–bo15) ── */
+@keyframes bo01{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}75%{transform:translateY(-8px)}}
+@keyframes bo02{0%,100%{transform:translateY(0)}40%{transform:translateY(-16px)}55%{transform:translateY(-10px)}70%{transform:translateY(-14px)}85%{transform:translateY(-10px)}}
+@keyframes bo03{0%{transform:scale(1)}30%{transform:scale(1.12) translateY(-8px)}60%{transform:scale(.96) translateY(0)}80%{transform:scale(1.04) translateY(-4px)}100%{transform:scale(1)}}
+@keyframes bo04{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+@keyframes bo05{0%,20%,50%,80%,100%{transform:translateY(0)}40%{transform:translateY(-12px)}60%{transform:translateY(-6px)}}
+@keyframes bo06{0%{transform:translateY(-20px);animation-timing-function:ease-in}40%{transform:translateY(0);animation-timing-function:ease-out}55%{transform:translateY(-8px);animation-timing-function:ease-in}75%{transform:translateY(0);animation-timing-function:ease-out}88%{transform:translateY(-3px)}100%{transform:translateY(0)}}
+@keyframes bo07{0%,100%{transform:translateX(0)}25%{transform:translateX(8px)}75%{transform:translateX(-8px)}}
+@keyframes bo08{0%,100%{transform:scale(1)}50%{transform:scale(1.06) translateY(-4px)}}
+@keyframes bo09{0%{transform:translateY(0) scale(1)}30%{transform:translateY(-14px) scale(1.05)}60%{transform:translateY(-6px) scale(.98)}80%{transform:translateY(-10px) scale(1.02)}100%{transform:translateY(0) scale(1)}}
+@keyframes bo10{0%,100%{transform:translateY(0) rotate(0)}25%{transform:translateY(-10px) rotate(-3deg)}75%{transform:translateY(-10px) rotate(3deg)}}
+@keyframes bo11{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.08) rotate(2deg)}}
+@keyframes bo12{0%,100%{letter-spacing:0}50%{letter-spacing:2px}}
+@keyframes bo13{0%,100%{transform:skew(0,0)}33%{transform:skew(3deg,1deg)}66%{transform:skew(-3deg,-1deg)}}
+@keyframes bo14{0%,100%{transform:translateY(0)}30%{transform:translateY(-8px)}50%{transform:translateY(0)}70%{transform:translateY(-4px)}}
+@keyframes bo15{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(99,102,241,.4)}50%{transform:scale(1.04);box-shadow:0 0 0 12px rgba(99,102,241,0)}}
+
+/* ── GROUP 9 : RIPPLE (rp01–rp10) ── */
+@keyframes rp01{0%{transform:scale(0);opacity:.6}100%{transform:scale(4);opacity:0}}
+@keyframes rp02{0%{transform:scale(0);opacity:.5}100%{transform:scale(6);opacity:0}}
+@keyframes rp03{0%{width:0;height:0;opacity:.6;margin:0}100%{width:300px;height:300px;opacity:0;margin:-150px}}
+@keyframes rp04{0%{box-shadow:0 0 0 0 rgba(99,102,241,.5)}100%{box-shadow:0 0 0 30px rgba(99,102,241,0)}}
+@keyframes rp05{0%{box-shadow:0 0 0 0 rgba(139,92,246,.5)}100%{box-shadow:0 0 0 25px rgba(139,92,246,0)}}
+@keyframes rp06{0%{box-shadow:0 0 0 0 rgba(232,121,249,.5)}100%{box-shadow:0 0 0 20px rgba(232,121,249,0)}}
+@keyframes rp07{0%{box-shadow:0 0 0 0 rgba(52,211,153,.5)}100%{box-shadow:0 0 0 20px rgba(52,211,153,0)}}
+@keyframes rp08{0%{box-shadow:0 0 0 0 rgba(99,102,241,.4),0 0 0 0 rgba(139,92,246,.2)}100%{box-shadow:0 0 0 20px rgba(99,102,241,0),0 0 0 40px rgba(139,92,246,0)}}
+@keyframes rp09{0%{transform:scale(1);opacity:.5}100%{transform:scale(3);opacity:0}}
+@keyframes rp10{0%{transform:scale(0) rotate(0);opacity:.7}100%{transform:scale(5) rotate(30deg);opacity:0}}
+
+/* ── GROUP 10 : GLITCH (gl01–gl15) ── */
+@keyframes gl01{0%,100%{transform:none;opacity:1}92%{transform:skew(-0.5deg);opacity:.8}94%{transform:skew(0.5deg,-1deg);opacity:.9}96%{transform:none;opacity:1}98%{transform:skew(1deg);opacity:.8}}
+@keyframes gl02{0%,94%,100%{opacity:1;transform:none}95%{opacity:.5;transform:translateX(2px)}96%{opacity:.8;transform:translateX(-1px)}97%{opacity:1;transform:none}98%{opacity:.6;transform:translateX(1px)}}
+@keyframes gl03{0%,100%{text-shadow:none}90%{text-shadow:2px 0 #e879f9,-2px 0 #60a5fa}92%{text-shadow:-2px 0 #e879f9,2px 0 #60a5fa}94%{text-shadow:none}}
+@keyframes gl04{0%,100%{clip-path:none}92%{clip-path:polygon(0 10%,100% 10%,100% 30%,0 30%)}94%{clip-path:polygon(0 60%,100% 60%,100% 80%,0 80%)}96%{clip-path:none}}
+@keyframes gl05{0%,100%{transform:none}96%{transform:translate(-2px,1px)}97%{transform:translate(2px,-1px)}98%{transform:none}99%{transform:translate(-1px,2px)}}
+@keyframes gl06{0%,100%{filter:none}95%{filter:hue-rotate(90deg) saturate(2)}96%{filter:hue-rotate(180deg)}97%{filter:none}}
+@keyframes gl07{0%,100%{opacity:1}96%{opacity:.4}97%{opacity:1}98%{opacity:.6}99%{opacity:1}}
+@keyframes gl08{0%,100%{transform:none;filter:none}97%{transform:skewX(5deg);filter:brightness(1.5)}}
+@keyframes gl09{0%,100%{letter-spacing:normal}95%{letter-spacing:3px}97%{letter-spacing:-1px}99%{letter-spacing:normal}}
+@keyframes gl10{0%,100%{transform:none}98%{transform:translate(3px,0) scaleX(.98)}99%{transform:translate(-3px,0) scaleX(1.02)}}
+@keyframes gl11{0%,100%{box-shadow:none}97%{box-shadow:3px 0 8px rgba(232,121,249,.7),-3px 0 8px rgba(96,165,250,.7)}}
+@keyframes gl12{0%,100%{background-position:0 0}95%{background-position:4px 0}97%{background-position:-4px 2px}99%{background-position:0 0}}
+@keyframes gl13{0%,100%{transform:none}96%{transform:scale(1.02) skewX(-1deg)}97%{transform:scale(.99) skewX(1deg)}98%{transform:none}}
+@keyframes gl14{0%,100%{filter:none}96%{filter:contrast(2) brightness(1.2)}97%{filter:invert(.1)}98%{filter:none}}
+@keyframes gl15{0%,100%{transform:none;opacity:1}95%{transform:translate(1px,-1px);opacity:.9}96%{transform:translate(-1px,1px);opacity:1}97%{transform:none;opacity:.7}98%{transform:translate(2px,0);opacity:1}}
+
+/* ── GROUP 11 : WAVE / WAVEFORM (wa01–wa10) ── */
+@keyframes wa01{0%,100%{transform:scaleY(0.3)}50%{transform:scaleY(1)}}
+@keyframes wa02{0%,100%{transform:scaleY(0.5)}50%{transform:scaleY(1.2)}}
+@keyframes wa03{0%{transform:scaleY(0.2)}25%{transform:scaleY(1)}50%{transform:scaleY(0.5)}75%{transform:scaleY(0.9)}100%{transform:scaleY(0.2)}}
+@keyframes wa04{0%,100%{height:4px}50%{height:20px}}
+@keyframes wa05{0%,100%{height:6px}50%{height:18px}}
+@keyframes wa06{0%,100%{transform:scaleY(1)}50%{transform:scaleY(2.5)}}
+@keyframes wa07{0%{transform:rotate(0) scaleY(1)}50%{transform:rotate(2deg) scaleY(1.5)}100%{transform:rotate(0) scaleY(1)}}
+@keyframes wa08{0%{transform:translateY(0) scaleY(.4)}50%{transform:translateY(-4px) scaleY(1)}100%{transform:translateY(0) scaleY(.4)}}
+@keyframes wa09{0%,100%{transform:scaleY(.4) scaleX(1)}50%{transform:scaleY(1.2) scaleX(.8)}}
+@keyframes wa10{0%{clip-path:polygon(0 100%,0 70%,25% 40%,50% 70%,75% 30%,100% 50%,100% 100%)}50%{clip-path:polygon(0 100%,0 40%,25% 70%,50% 20%,75% 60%,100% 30%,100% 100%)}100%{clip-path:polygon(0 100%,0 70%,25% 40%,50% 70%,75% 30%,100% 50%,100% 100%)}}
+
+/* ── GROUP 12 : SPARK / PARTICLE (sp01–sp10) ── */
+@keyframes sp01{0%{transform:translate(0,0) scale(1);opacity:1}100%{transform:translate(30px,-60px) scale(0);opacity:0}}
+@keyframes sp02{0%{transform:translate(0,0);opacity:1}100%{transform:translate(-30px,-50px) scale(0);opacity:0}}
+@keyframes sp03{0%{transform:translate(0,0) scale(1);opacity:.9}100%{transform:translate(20px,-80px) scale(0);opacity:0}}
+@keyframes sp04{0%{transform:translate(0,0);opacity:.8}100%{transform:translate(-20px,-70px) scale(0);opacity:0}}
+@keyframes sp05{0%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(0) translate(var(--dx,20px),var(--dy,-40px))}}
+@keyframes sp06{0%,100%{opacity:0}50%{opacity:1}}
+@keyframes sp07{0%,100%{opacity:0;transform:scale(0)}50%{opacity:.8;transform:scale(1)}}
+@keyframes sp08{0%{opacity:.9;transform:scale(1) translateY(0)}100%{opacity:0;transform:scale(.1) translateY(-60px)}}
+@keyframes sp09{0%{transform:scale(0) rotate(0);opacity:1}100%{transform:scale(2) rotate(90deg);opacity:0}}
+@keyframes sp10{0%,100%{opacity:0;width:2px;height:2px}50%{opacity:1;width:4px;height:4px}}
+
+/* ── GROUP 13 : MORPH / BLOB (mo01–mo10) ── */
+@keyframes mo01{0%,100%{border-radius:60% 40% 30% 70%/60% 30% 70% 40%}50%{border-radius:30% 60% 70% 40%/50% 60% 30% 60%}}
+@keyframes mo02{0%,100%{border-radius:40% 60% 60% 40%/40% 60% 40% 60%}50%{border-radius:60% 40% 40% 60%/60% 40% 60% 40%}}
+@keyframes mo03{0%,100%{border-radius:50%}33%{border-radius:40% 60% 50% 50%}66%{border-radius:50% 50% 40% 60%}}
+@keyframes mo04{0%,100%{border-radius:20px}50%{border-radius:40px}}
+@keyframes mo05{0%,100%{border-radius:4px}50%{border-radius:20px}}
+@keyframes mo06{0%,100%{border-radius:50% 50% 30% 70%/50% 30% 70% 50%}50%{border-radius:30% 70% 50% 50%/30% 50% 50% 70%}}
+@keyframes mo07{0%,100%{clip-path:polygon(50% 0%,100% 38%,82% 100%,18% 100%,0% 38%)}50%{clip-path:polygon(50% 5%,95% 35%,80% 98%,20% 98%,5% 35%)}}
+@keyframes mo08{0%,100%{clip-path:circle(50%)}50%{clip-path:ellipse(55% 45%)}}
+@keyframes mo09{0%,100%{border-radius:30% 70% 70% 30%/30% 30% 70% 70%}33%{border-radius:70% 30% 30% 70%/70% 70% 30% 30%}66%{border-radius:30% 70% 50% 50%/50% 30% 70% 50%}}
+@keyframes mo10{0%,100%{transform:scale(1) rotate(0);border-radius:30% 70% 70% 30%/30% 30% 70% 70%}50%{transform:scale(1.05) rotate(2deg);border-radius:70% 30% 30% 70%/70% 70% 30% 30%}}
+
+/* ── GROUP 14 : AURORA / NEBULA (au01–au15) ── */
+@keyframes au01{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(40px,-30px) scale(1.08)}66%{transform:translate(-30px,20px) scale(0.94)}}
+@keyframes au02{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(-50px,40px) scale(1.06)}66%{transform:translate(30px,-50px) scale(0.92)}}
+@keyframes au03{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-40px,-30px) scale(1.1)}}
+@keyframes au04{0%,100%{transform:translate(0,0) rotate(0)}50%{transform:translate(50px,-40px) rotate(15deg)}}
+@keyframes au05{0%,100%{opacity:.06}50%{opacity:.14}}
+@keyframes au06{0%,100%{opacity:.04;transform:scale(1)}50%{opacity:.1;transform:scale(1.1)}}
+@keyframes au07{0%{transform:translate(0,0) scale(1)}25%{transform:translate(30px,-20px) scale(1.05)}50%{transform:translate(60px,10px) scale(.95)}75%{transform:translate(30px,30px) scale(1.03)}100%{transform:translate(0,0) scale(1)}}
+@keyframes au08{0%,100%{filter:blur(40px);opacity:.08}50%{filter:blur(60px);opacity:.14}}
+@keyframes au09{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+@keyframes au10{0%,100%{transform:scale(1);opacity:.06}50%{transform:scale(1.15);opacity:.12}}
+@keyframes au11{0%{transform:translateX(-20%) translateY(0)}100%{transform:translateX(20%) translateY(-10%)}}
+@keyframes au12{0%,100%{filter:blur(60px) brightness(1)}50%{filter:blur(80px) brightness(1.2)}}
+@keyframes au13{0%{background:radial-gradient(ellipse,rgba(99,102,241,.08),transparent 60%)}50%{background:radial-gradient(ellipse,rgba(232,121,249,.1),transparent 60%)}100%{background:radial-gradient(ellipse,rgba(99,102,241,.08),transparent 60%)}}
+@keyframes au14{0%,100%{transform:translate(0,0) rotate(0)}33%{transform:translate(60px,-40px) rotate(5deg)}66%{transform:translate(-40px,60px) rotate(-5deg)}}
+@keyframes au15{0%,100%{transform:scale(1) translate(0,0)}50%{transform:scale(1.08) translate(-20px,20px)}}
+
+/* ── GROUP 15 : TEXT EFFECTS (tx01–tx15) ── */
+@keyframes tx01{from{letter-spacing:-0.5em;opacity:0}to{letter-spacing:normal;opacity:1}}
+@keyframes tx02{from{letter-spacing:1em;opacity:0}to{letter-spacing:normal;opacity:1}}
+@keyframes tx03{0%,100%{letter-spacing:normal}50%{letter-spacing:2px}}
+@keyframes tx04{from{opacity:0;filter:blur(8px)}to{opacity:1;filter:blur(0)}}
+@keyframes tx05{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:translateY(0)}}
+@keyframes tx06{0%,100%{opacity:1}50%{opacity:0}}
+@keyframes tx07{0%{width:0;border-right:2px solid #a5b4fc}100%{width:100%;border-right:2px solid #a5b4fc}}
+@keyframes tx08{0%,100%{text-shadow:0 0 4px rgba(165,180,252,.3)}50%{text-shadow:0 0 18px rgba(165,180,252,.9),0 0 35px rgba(99,102,241,.5)}}
+@keyframes tx09{0%,100%{transform:none}33%{transform:skewX(3deg)}66%{transform:skewX(-3deg)}}
+@keyframes tx10{from{opacity:0;transform:scale(.9) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes tx11{0%{opacity:0;transform:rotateX(90deg)}100%{opacity:1;transform:rotateX(0)}}
+@keyframes tx12{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+@keyframes tx13{0%{color:rgba(255,255,255,.2)}100%{color:rgba(255,255,255,1)}}
+@keyframes tx14{0%,100%{transform:translateX(0)}10%,30%,50%,70%,90%{transform:translateX(-2px)}20%,40%,60%,80%{transform:translateX(2px)}}
+@keyframes tx15{0%{opacity:0;max-height:0}100%{opacity:1;max-height:100px}}
+
+/* ── GROUP 16 : BORDER EFFECTS (bd01–bd15) ── */
+@keyframes bd01{0%,100%{border-color:rgba(99,102,241,.2)}50%{border-color:rgba(99,102,241,.6)}}
+@keyframes bd02{0%{border-color:rgba(99,102,241,.2)}25%{border-color:rgba(139,92,246,.4)}50%{border-color:rgba(232,121,249,.3)}75%{border-color:rgba(96,165,250,.4)}100%{border-color:rgba(99,102,241,.2)}}
+@keyframes bd03{0%{outline-width:0;outline-offset:0;opacity:.8}100%{outline-width:20px;outline-offset:20px;opacity:0}}
+@keyframes bd04{0%,100%{border-width:1px}50%{border-width:2px}}
+@keyframes bd05{0%{box-shadow:0 0 0 0 rgba(99,102,241,.5),inset 0 0 0 0 rgba(99,102,241,.1)}100%{box-shadow:0 0 0 20px rgba(99,102,241,0),inset 0 0 0 4px rgba(99,102,241,.2)}}
+@keyframes bd06{0%,100%{border-radius:14px}50%{border-radius:20px}}
+@keyframes bd07{0%,100%{outline:none}50%{outline:2px solid rgba(99,102,241,.4);outline-offset:3px}}
+@keyframes bd08{0%{background-position:0% 50%}100%{background-position:200% 50%}}
+@keyframes bd09{0%,100%{border-color:rgba(99,102,241,.15);box-shadow:none}50%{border-color:rgba(99,102,241,.5);box-shadow:0 0 20px rgba(99,102,241,.2)}}
+@keyframes bd10{0%{transform:scaleX(0)}100%{transform:scaleX(1)}}
+@keyframes bd11{0%{transform:scaleX(0);transform-origin:left}100%{transform:scaleX(1);transform-origin:left}}
+@keyframes bd12{0%{transform:scaleX(0);transform-origin:right}100%{transform:scaleX(1);transform-origin:right}}
+@keyframes bd13{0%,100%{box-shadow:0 0 0 1px rgba(99,102,241,.1)}50%{box-shadow:0 0 0 2px rgba(99,102,241,.4),0 0 20px rgba(99,102,241,.15)}}
+@keyframes bd14{0%{clip-path:inset(0 100% 0 0)}100%{clip-path:inset(0 0% 0 0)}}
+@keyframes bd15{0%,100%{border-image-slice:1}50%{border-image-slice:10}}
+
+/* ── GROUP 17 : SHADOW (sd01–sd10) ── */
+@keyframes sd01{0%,100%{box-shadow:0 4px 15px rgba(0,0,0,.15)}50%{box-shadow:0 12px 40px rgba(0,0,0,.3)}}
+@keyframes sd02{0%,100%{box-shadow:0 4px 15px rgba(99,102,241,.15)}50%{box-shadow:0 16px 50px rgba(99,102,241,.4)}}
+@keyframes sd03{0%,100%{box-shadow:0 2px 8px rgba(0,0,0,.2),0 0 0 transparent}50%{box-shadow:0 8px 30px rgba(0,0,0,.4),0 0 30px rgba(99,102,241,.2)}}
+@keyframes sd04{0%,100%{filter:drop-shadow(0 4px 8px rgba(0,0,0,.3))}50%{filter:drop-shadow(0 12px 24px rgba(0,0,0,.5))}}
+@keyframes sd05{0%,100%{text-shadow:0 2px 4px rgba(0,0,0,.3)}50%{text-shadow:0 4px 12px rgba(0,0,0,.5),0 0 20px rgba(99,102,241,.2)}}
+@keyframes sd06{0%,100%{box-shadow:none}50%{box-shadow:0 0 30px rgba(99,102,241,.3),0 0 60px rgba(139,92,246,.15)}}
+@keyframes sd07{0%,100%{filter:drop-shadow(0 0 0 transparent)}50%{filter:drop-shadow(0 0 12px rgba(99,102,241,.6))}}
+@keyframes sd08{0%{box-shadow:0 0 0 rgba(99,102,241,0)}100%{box-shadow:0 20px 60px rgba(99,102,241,.25)}}
+@keyframes sd09{0%,100%{box-shadow:0 4px 6px rgba(0,0,0,.1),0 1px 3px rgba(0,0,0,.1)}50%{box-shadow:0 20px 25px rgba(0,0,0,.15),0 10px 10px rgba(0,0,0,.1)}}
+@keyframes sd10{0%,100%{box-shadow:inset 0 2px 4px rgba(0,0,0,.1)}50%{box-shadow:inset 0 4px 12px rgba(99,102,241,.3)}}
+
+/* ── GROUP 18 : PERSPECTIVE / 3D (ps01–ps10) ── */
+@keyframes ps01{0%,100%{transform:perspective(600px) rotateY(0)}50%{transform:perspective(600px) rotateY(8deg)}}
+@keyframes ps02{0%,100%{transform:perspective(600px) rotateY(0)}50%{transform:perspective(600px) rotateY(-8deg)}}
+@keyframes ps03{0%,100%{transform:perspective(600px) rotateX(0)}50%{transform:perspective(600px) rotateX(6deg)}}
+@keyframes ps04{0%,100%{transform:perspective(600px) rotateX(0)}50%{transform:perspective(600px) rotateX(-6deg)}}
+@keyframes ps05{0%,100%{transform:perspective(800px) rotate3d(1,1,0,0deg)}50%{transform:perspective(800px) rotate3d(1,1,0,8deg)}}
+@keyframes ps06{0%{transform:perspective(400px) translateZ(0)}100%{transform:perspective(400px) translateZ(20px)}}
+@keyframes ps07{0%,100%{transform:perspective(800px) rotateY(0) rotateX(0)}33%{transform:perspective(800px) rotateY(5deg) rotateX(2deg)}66%{transform:perspective(800px) rotateY(-5deg) rotateX(-2deg)}}
+@keyframes ps08{0%,100%{transform:perspective(600px) translateZ(0)}50%{transform:perspective(600px) translateZ(15px)}}
+@keyframes ps09{from{transform:perspective(400px) rotateX(20deg) translateY(20px);opacity:0}to{transform:perspective(400px) rotateX(0) translateY(0);opacity:1}}
+@keyframes ps10{0%,100%{transform:perspective(1000px) rotateY(0)}50%{transform:perspective(1000px) rotateY(3deg)}}
+
+/* ── GROUP 19 : COSMIC / SPACE (co01–co15) ── */
+@keyframes co01{0%{transform:translateX(-100%) rotate(45deg);opacity:0}30%{opacity:1}100%{transform:translateX(200%) rotate(45deg);opacity:0}}
+@keyframes co02{0%{transform:translateX(-100%) rotate(-30deg);opacity:0}40%{opacity:.8}100%{transform:translateX(300%) rotate(-30deg);opacity:0}}
+@keyframes co03{0%,100%{opacity:.2;transform:scale(1)}50%{opacity:.8;transform:scale(1.4)}}
+@keyframes co04{0%,100%{opacity:.1;transform:scale(1) rotate(0)}50%{opacity:.5;transform:scale(1.3) rotate(10deg)}}
+@keyframes co05{0%{transform:translateY(0);opacity:0}10%{opacity:1}90%{opacity:1}100%{transform:translateY(-80vh);opacity:0}}
+@keyframes co06{0%{transform:translateY(0) translateX(0);opacity:0}10%{opacity:.8}100%{transform:translateY(-60vh) translateX(20vw);opacity:0}}
+@keyframes co07{0%,100%{box-shadow:0 0 6px rgba(165,180,252,.3)}50%{box-shadow:0 0 20px rgba(165,180,252,.8),0 0 40px rgba(99,102,241,.4)}}
+@keyframes co08{0%,100%{background-position:0% 50%;filter:hue-rotate(0)}50%{background-position:100% 50%;filter:hue-rotate(30deg)}}
+@keyframes co09{0%{transform:scale(0) rotate(0);opacity:1}100%{transform:scale(3) rotate(180deg);opacity:0}}
+@keyframes co10{0%,100%{opacity:.05;transform:scaleX(0)}50%{opacity:.3;transform:scaleX(1)}}
+@keyframes co11{0%{left:0;width:0;opacity:.8}50%{width:100%;opacity:1}100%{left:100%;width:0;opacity:0}}
+@keyframes co12{0%{transform:translate(-50%,-50%) scale(0);opacity:.6}100%{transform:translate(-50%,-50%) scale(2);opacity:0}}
+@keyframes co13{0%,100%{filter:blur(0) brightness(1)}50%{filter:blur(1px) brightness(1.3)}}
+@keyframes co14{0%{background-position:0 0}100%{background-position:0 -200px}}
+@keyframes co15{0%,95%,100%{opacity:1;transform:none}96%{opacity:.5;transform:translateX(3px) scaleX(.98)}97%{opacity:.8;transform:translateX(-2px)}98%{opacity:1}}
+
+/* ── GROUP 20 : BIO / ORGANIC (bi01–bi10) ── */
+@keyframes bi01{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.03);opacity:.9}}
+@keyframes bi02{0%,100%{transform:scale(1) skewY(0)}50%{transform:scale(1.02) skewY(.5deg)}}
+@keyframes bi03{0%,100%{border-radius:50%}33%{border-radius:60% 40% 55% 45%}66%{border-radius:45% 55% 40% 60%}}
+@keyframes bi04{0%,100%{transform:scale(1);border-radius:30% 70% 70% 30%}50%{transform:scale(1.04);border-radius:70% 30% 30% 70%}}
+@keyframes bi05{0%,100%{transform:none;filter:none}50%{transform:scale(1.02) rotate(.5deg);filter:saturate(1.2)}}
+@keyframes bi06{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
+@keyframes bi07{0%,100%{transform:rotate(-1deg) scale(1)}50%{transform:rotate(1deg) scale(1.02)}}
+@keyframes bi08{0%,100%{filter:blur(0) brightness(1)}50%{filter:blur(.5px) brightness(1.1)}}
+@keyframes bi09{0%,100%{transform:scale(1) translateY(0)}33%{transform:scale(1.02) translateY(-2px)}66%{transform:scale(.99) translateY(1px)}}
+@keyframes bi10{0%,100%{opacity:.6;transform:scale(1)}50%{opacity:1;transform:scale(1.05)}}
+
+/* ════════ UTILITY ANIMATION CLASSES ════════ */
+/* Float */
+.anim-f01{animation:f01 3s ease-in-out infinite}
+.anim-f02{animation:f02 4s ease-in-out infinite}
+.anim-f03{animation:f03 5s ease-in-out infinite}
+.anim-f04{animation:f04 3.5s ease-in-out infinite}
+.anim-f05{animation:f05 4s ease-in-out infinite}
+.anim-f06{animation:f06 6s ease-in-out infinite}
+.anim-f07{animation:f07 7s ease-in-out infinite}
+.anim-f08{animation:f08 8s ease-in-out infinite}
+.anim-f09{animation:f09 4s ease-in-out infinite}
+.anim-f10{animation:f10 3.5s ease-in-out infinite}
+/* Glow */
+.anim-g01{animation:g01 2.5s ease-in-out infinite}
+.anim-g02{animation:g02 3s ease-in-out infinite}
+.anim-g03{animation:g03 3.5s ease-in-out infinite}
+.anim-g04{animation:g04 2.5s ease-in-out infinite}
+.anim-g05{animation:g05 3s ease-in-out infinite}
+.anim-g10{animation:g10 2s ease-out infinite}
+.anim-g11{animation:g11 2.5s ease-out infinite}
+.anim-g17{animation:g17 3s ease-in-out infinite}
+.anim-g19{animation:g19 6s linear infinite}
+.anim-g24{animation:g24 3s ease-in-out infinite}
+/* Gradient */
+.anim-gr01{animation:gr01 6s linear infinite}
+.anim-gr02{animation:gr02 8s linear infinite}
+.anim-gr03{animation:gr03 10s linear infinite}
+.anim-gr05{animation:gr05 8s linear infinite}
+.anim-gr09{animation:gr09 6s linear infinite}
+/* Scale */
+.anim-sc01{animation:sc01 3s ease-in-out infinite}
+.anim-sc03{animation:sc03 4s ease-in-out infinite}
+.anim-sc04{animation:sc04 2.5s ease-in-out infinite}
+/* Bounce */
+.anim-bo01{animation:bo01 2s ease-in-out infinite}
+.anim-bo05{animation:bo05 1.5s ease infinite}
+/* Ripple */
+.anim-rp04{animation:rp04 2s ease-out infinite}
+/* Glitch */
+.anim-gl01{animation:gl01 4s linear infinite}
+.anim-gl02{animation:gl02 6s linear infinite}
+.anim-gl15{animation:gl15 8s linear infinite}
+/* Aurora */
+.anim-au01{animation:au01 15s ease-in-out infinite}
+.anim-au02{animation:au02 18s ease-in-out infinite}
+.anim-au03{animation:au03 22s ease-in-out infinite}
+/* Text */
+.anim-tx01{animation:tx01 .8s ease backwards}
+.anim-tx04{animation:tx04 .6s ease backwards}
+.anim-tx08{animation:tx08 3s ease-in-out infinite}
+/* Morph */
+.anim-mo01{animation:mo01 8s ease-in-out infinite}
+.anim-mo02{animation:mo02 10s ease-in-out infinite}
+/* Shimmer */
+.anim-sh01{animation:sh01 2.5s linear infinite}
+.anim-sh04{animation:sh04 3s linear infinite}
+/* Perspective */
+.anim-ps01{animation:ps01 5s ease-in-out infinite}
+.anim-ps10{animation:ps10 8s ease-in-out infinite}
+/* Cosmic */
+.anim-co01{animation:co01 5s linear infinite}
+.anim-co15{animation:co15 10s linear infinite}
+/* Slide-in */
+.anim-sl01{animation:sl01 .7s ease backwards}
+.anim-sl03{animation:sl03 .7s ease backwards}
+.anim-sl07{animation:sl07 .8s ease backwards}
