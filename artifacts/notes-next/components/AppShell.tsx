@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchNotes, createNote, updateNote, deleteNote, fetchTags, createTag, deleteTag, type Note, type Tag } from "@/lib/api";
 import { Sidebar } from "./Sidebar";
 import { NoteList } from "./NoteList";
 import { Editor } from "./Editor";
+import { ShortcutsModal } from "./ShortcutsModal";
 
-export type View = "notes" | "starred" | "archived" | "trash" | "tag";
+export type View = "notes" | "starred" | "archived" | "trash" | "pinned" | "tag";
 
 export function AppShell() {
   const qc = useQueryClient();
@@ -15,6 +16,7 @@ export function AppShell() {
   const [activeTagId, setActiveTagId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   const { data: notes = [], isLoading: notesLoading } = useQuery({
     queryKey: ["notes"],
@@ -50,8 +52,7 @@ export function AppShell() {
   });
 
   const createTagMutation = useMutation({
-    mutationFn: ({ name, color }: { name: string; color?: string }) =>
-      createTag(name, color),
+    mutationFn: ({ name, color }: { name: string; color?: string }) => createTag(name, color),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tags"] }),
   });
 
@@ -60,6 +61,23 @@ export function AppShell() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tags"] }),
   });
 
+  const handleNewNote = useCallback(() => {
+    createMutation.mutate({ title: "", content: "" });
+  }, [createMutation]);
+
+  // Global keyboard shortcuts
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      const meta = e.metaKey || e.ctrlKey;
+      if (meta && e.key === "n") { e.preventDefault(); handleNewNote(); }
+      if (meta && e.key === "k") { e.preventDefault(); document.querySelector<HTMLInputElement>(".search-input")?.focus(); }
+      if (meta && e.key === "/") { e.preventDefault(); setShowShortcuts(s => !s); }
+      if (e.key === "Escape") { setShowShortcuts(false); }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [handleNewNote]);
+
   const filteredNotes = notes.filter((n) => {
     const q = search.toLowerCase();
     const matchesSearch = !q || n.title.toLowerCase().includes(q) || n.content.toLowerCase().includes(q);
@@ -67,14 +85,17 @@ export function AppShell() {
     if (view === "starred") return !!n.starred && !n.trashed;
     if (view === "archived") return !!n.archived && !n.trashed;
     if (view === "trash") return !!n.trashed;
+    if (view === "pinned") return !!n.pinned && !n.trashed;
+    if (view === "tag") return !n.trashed && !n.archived;
     return !n.trashed && !n.archived;
   });
 
-  const selectedNote = notes.find((n) => n.id === selectedId) ?? null;
+  // Pinned first in "notes" view
+  const sortedNotes = view === "notes"
+    ? [...filteredNotes].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0))
+    : filteredNotes;
 
-  const handleNewNote = useCallback(() => {
-    createMutation.mutate({ title: "", content: "" });
-  }, [createMutation]);
+  const selectedNote = notes.find((n) => n.id === selectedId) ?? null;
 
   const handleNoteChange = useCallback(
     (id: string, field: "title" | "content", value: string) => {
@@ -87,12 +108,14 @@ export function AppShell() {
     (note: Note) => updateMutation.mutate({ id: note.id, starred: !note.starred }),
     [updateMutation]
   );
-
+  const handleTogglePin = useCallback(
+    (note: Note) => updateMutation.mutate({ id: note.id, pinned: !note.pinned }),
+    [updateMutation]
+  );
   const handleToggleArchive = useCallback(
     (note: Note) => updateMutation.mutate({ id: note.id, archived: !note.archived }),
     [updateMutation]
   );
-
   const handleTrash = useCallback(
     (note: Note) => {
       updateMutation.mutate({ id: note.id, trashed: true });
@@ -100,25 +123,13 @@ export function AppShell() {
     },
     [updateMutation, selectedId]
   );
-
   const handleRestoreFromTrash = useCallback(
     (note: Note) => updateMutation.mutate({ id: note.id, trashed: false }),
     [updateMutation]
   );
-
   const handleDeleteForever = useCallback(
     (id: string) => deleteMutation.mutate(id),
     [deleteMutation]
-  );
-
-  const handleCreateTag = useCallback(
-    (name: string) => createTagMutation.mutate({ name }),
-    [createTagMutation]
-  );
-
-  const handleDeleteTag = useCallback(
-    (id: string) => deleteTagMutation.mutate(id),
-    [deleteTagMutation]
   );
 
   const counts = {
@@ -126,6 +137,7 @@ export function AppShell() {
     starred: notes.filter((n) => n.starred && !n.trashed).length,
     archived: notes.filter((n) => n.archived && !n.trashed).length,
     trash: notes.filter((n) => n.trashed).length,
+    pinned: notes.filter((n) => n.pinned && !n.trashed).length,
   };
 
   return (
@@ -137,11 +149,12 @@ export function AppShell() {
         counts={counts}
         onViewChange={(v) => { setView(v); setSelectedId(null); setActiveTagId(null); }}
         onTagClick={(id) => { setView("tag"); setActiveTagId(id); setSelectedId(null); }}
-        onCreateTag={handleCreateTag}
-        onDeleteTag={handleDeleteTag}
+        onCreateTag={(name) => createTagMutation.mutate({ name })}
+        onDeleteTag={(id) => deleteTagMutation.mutate(id)}
+        onShowShortcuts={() => setShowShortcuts(true)}
       />
       <NoteList
-        notes={filteredNotes}
+        notes={sortedNotes}
         view={view}
         search={search}
         selectedId={selectedId}
@@ -150,6 +163,7 @@ export function AppShell() {
         onSearch={setSearch}
         onNew={handleNewNote}
         onToggleStar={handleToggleStar}
+        onTogglePin={handleTogglePin}
         onArchive={handleToggleArchive}
         onTrash={handleTrash}
         onRestore={handleRestoreFromTrash}
@@ -159,9 +173,11 @@ export function AppShell() {
         note={selectedNote}
         onChange={handleNoteChange}
         onToggleStar={handleToggleStar}
+        onTogglePin={handleTogglePin}
         onTrash={handleTrash}
         onArchive={handleToggleArchive}
       />
+      {showShortcuts && <ShortcutsModal onClose={() => setShowShortcuts(false)} />}
     </div>
   );
 }
