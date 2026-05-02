@@ -23,3 +23,15 @@ timeoutMs = 20000
 
 [userenv.shared]
 INSFORGE_API_BASE_URL = "https://smvf3cap.ap-southeast.insforge.app"
+
+[[ports]]
+localPort = 8080
+externalPort = 8080
+
+[[ports]]
+localPort = 8081
+externalPort = 80
+
+[[ports]]
+localPort = 21118
+externalPort = 3000

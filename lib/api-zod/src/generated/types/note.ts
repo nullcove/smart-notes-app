@@ -5,9 +5,6 @@
  * Smart Notes API
  * OpenAPI spec version: 0.1.0
  */
-export interface HealthStatus {
-  status: string;
-}
 
 export interface Note {
   id: string;
@@ -15,14 +12,4 @@ export interface Note {
   content: string;
   createdAt: string;
   updatedAt?: string;
-}
-
-export interface CreateNoteInput {
-  title: string;
-  content: string;
-}
-
-export interface NoteDeleteResult {
-  success: boolean;
-  id: string;
 }

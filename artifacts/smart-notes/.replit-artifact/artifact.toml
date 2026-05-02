@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Smart Notes App"
+version = "1.0.0"
+id = "artifacts/smart-notes"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 21118
+
+[services.development]
+run = "pnpm --filter @workspace/smart-notes run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/smart-notes", "run", "build" ]
+publicDir = "artifacts/smart-notes/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21118"
+BASE_PATH = "/"
