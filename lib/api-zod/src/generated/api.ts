@@ -38,6 +38,27 @@ export const CreateNoteBody = zod.object({
 });
 
 /**
+ * Update an existing note by ID
+ * @summary Update a note
+ */
+export const UpdateNoteParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateNoteBody = zod.object({
+  title: zod.string().optional(),
+  content: zod.string().optional(),
+});
+
+export const UpdateNoteResponse = zod.object({
+  id: zod.string(),
+  title: zod.string(),
+  content: zod.string(),
+  createdAt: zod.string(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
  * Delete a note by ID
  * @summary Delete a note
  */

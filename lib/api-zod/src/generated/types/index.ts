@@ -10,3 +10,4 @@ export * from "./createNoteInput";
 export * from "./healthStatus";
 export * from "./note";
 export * from "./noteDeleteResult";
+export * from "./updateNoteInput";

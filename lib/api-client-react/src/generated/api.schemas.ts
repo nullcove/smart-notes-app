@@ -22,6 +22,11 @@ export interface CreateNoteInput {
   content: string;
 }
 
+export interface UpdateNoteInput {
+  title?: string;
+  content?: string;
+}
+
 export interface NoteDeleteResult {
   success: boolean;
   id: string;

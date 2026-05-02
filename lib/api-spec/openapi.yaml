@@ -60,6 +60,30 @@ paths:
               schema:
                 $ref: "#/components/schemas/Note"
   /notes/{id}:
+    patch:
+      operationId: updateNote
+      tags: [notes]
+      summary: Update a note
+      description: Update an existing note by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateNoteInput"
+      responses:
+        "200":
+          description: Note updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Note"
     delete:
       operationId: deleteNote
       tags: [notes]
@@ -115,6 +139,13 @@ components:
       required:
         - title
         - content
+    UpdateNoteInput:
+      type: object
+      properties:
+        title:
+          type: string
+        content:
+          type: string
     NoteDeleteResult:
       type: object
       properties:

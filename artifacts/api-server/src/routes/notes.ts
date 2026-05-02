@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { CreateNoteBody, DeleteNoteParams } from "@workspace/api-zod";
+import { CreateNoteBody, DeleteNoteParams, UpdateNoteParams } from "@workspace/api-zod";
 import { z } from "zod";
 
 const router: IRouter = Router();
@@ -46,7 +46,8 @@ router.get("/notes", async (req, res) => {
 
     if (!response.ok) {
       req.log.error({ status: response.status, raw }, "Insforge GET notes failed");
-      return res.status(500).json({ error: "Failed to fetch notes" });
+      res.status(500).json({ error: "Failed to fetch notes" });
+      return;
     }
 
     res.json((raw ?? []).map(mapNote));
@@ -73,12 +74,14 @@ router.post("/notes", async (req, res) => {
 
     if (!response.ok) {
       req.log.error({ status: response.status, raw }, "Insforge POST notes failed");
-      return res.status(500).json({ error: "Failed to create note" });
+      res.status(500).json({ error: "Failed to create note" });
+      return;
     }
 
     const created = raw?.[0];
     if (!created) {
-      return res.status(500).json({ error: "Note creation returned no data" });
+      res.status(500).json({ error: "Note creation returned no data" });
+      return;
     }
 
     res.status(201).json(mapNote(created));
@@ -99,7 +102,7 @@ const UpdateNoteBody = z.object({
 
 router.patch("/notes/:id", async (req, res) => {
   try {
-    const { id } = req.params;
+    const { id } = UpdateNoteParams.parse(req.params);
     const body = UpdateNoteBody.parse(req.body);
 
     const response = await fetch(`${notesUrl()}?id=eq.${encodeURIComponent(id)}`, {
@@ -115,12 +118,14 @@ router.patch("/notes/:id", async (req, res) => {
 
     if (!response.ok) {
       req.log.error({ status: response.status, raw }, "Insforge PATCH note failed");
-      return res.status(500).json({ error: "Failed to update note" });
+      res.status(500).json({ error: "Failed to update note" });
+      return;
     }
 
     const updated = raw?.[0];
     if (!updated) {
-      return res.status(404).json({ error: "Note not found" });
+      res.status(404).json({ error: "Note not found" });
+      return;
     }
 
     res.json(mapNote(updated));
@@ -142,7 +147,8 @@ router.delete("/notes/:id", async (req, res) => {
     if (!response.ok) {
       const raw = await response.text();
       req.log.error({ status: response.status, raw }, "Insforge DELETE note failed");
-      return res.status(500).json({ error: "Failed to delete note" });
+      res.status(500).json({ error: "Failed to delete note" });
+      return;
     }
 
     res.json({ success: true, id });

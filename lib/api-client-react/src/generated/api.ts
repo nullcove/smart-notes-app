@@ -21,6 +21,7 @@ import type {
   HealthStatus,
   Note,
   NoteDeleteResult,
+  UpdateNoteInput,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -259,6 +260,94 @@ export const useCreateNote = <
   TContext
 > => {
   return useMutation(getCreateNoteMutationOptions(options));
+};
+
+/**
+ * Update an existing note by ID
+ * @summary Update a note
+ */
+export const getUpdateNoteUrl = (id: string) => {
+  return `/api/notes/${id}`;
+};
+
+export const updateNote = async (
+  id: string,
+  updateNoteInput: UpdateNoteInput,
+  options?: RequestInit,
+): Promise<Note> => {
+  return customFetch<Note>(getUpdateNoteUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateNoteInput),
+  });
+};
+
+export const getUpdateNoteMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateNote>>,
+    TError,
+    { id: string; data: BodyType<UpdateNoteInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateNote>>,
+  TError,
+  { id: string; data: BodyType<UpdateNoteInput> },
+  TContext
+> => {
+  const mutationKey = ["updateNote"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateNote>>,
+    { id: string; data: BodyType<UpdateNoteInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateNote(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateNoteMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateNote>>
+>;
+export type UpdateNoteMutationBody = BodyType<UpdateNoteInput>;
+export type UpdateNoteMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update a note
+ */
+export const useUpdateNote = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateNote>>,
+    TError,
+    { id: string; data: BodyType<UpdateNoteInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateNote>>,
+  TError,
+  { id: string; data: BodyType<UpdateNoteInput> },
+  TContext
+> => {
+  return useMutation(getUpdateNoteMutationOptions(options));
 };
 
 /**
