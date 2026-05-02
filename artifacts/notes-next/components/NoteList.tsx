@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import { Search, Plus, Star, Archive, Trash2, RotateCcw, Trash, Pin, FileText, X } from "lucide-react";
+import { Search, Plus, Star, Archive, Trash2, RotateCcw, Trash, Pin, FileText, X, StickyNote } from "lucide-react";
 import type { Note } from "@/lib/api";
 import type { View } from "./AppShell";
 
@@ -27,6 +27,16 @@ function highlightText(text: string, query: string) {
       {text.slice(idx + query.length)}
     </>
   );
+}
+
+/* Deterministic pastel accent per note (first char code) */
+const ACCENT_COLORS = [
+  "#818cf8", "#34d399", "#f59e0b", "#f87171",
+  "#60a5fa", "#c084fc", "#fb923c", "#4ade80", "#e879f9"
+];
+function noteAccent(id: string) {
+  const code = id.charCodeAt(0) + id.charCodeAt(id.length - 1);
+  return ACCENT_COLORS[code % ACCENT_COLORS.length];
 }
 
 interface ContextMenuState { x: number; y: number; note: Note; }
@@ -60,19 +70,18 @@ const emptyMessages: Record<View, string> = {
 };
 
 const emptyHints: Record<View, string> = {
-  notes: "Click + or press ⌘N to create one",
-  starred: "Star a note to find it here quickly",
-  archived: "Archive notes to declutter your workspace",
-  trash: "Deleted notes appear here",
+  notes: "Hit + or ⌘N to write your first note",
+  starred: "Star notes you want to find quickly",
+  archived: "Archive notes to keep things tidy",
+  trash: "Deleted notes land here",
   pinned: "Pin important notes for quick access",
-  tag: "Assign tags to notes in the editor",
+  tag: "Assign tags to notes from the editor",
 };
 
 export function NoteList({ notes, view, search, selectedId, loading, onSelect, onSearch, onNew, onToggleStar, onTogglePin, onArchive, onTrash, onRestore, onDeleteForever, onToast }: Props) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [animatingNew, setAnimatingNew] = useState(false);
-  const searchRef = useRef<HTMLInputElement>(null);
 
   function handleNew() {
     setAnimatingNew(true);
@@ -88,16 +97,16 @@ export function NoteList({ notes, view, search, selectedId, loading, onSelect, o
   const closeContext = useCallback(() => setContextMenu(null), []);
 
   return (
-    <div className="panel-list" style={{ width: 288, display: "flex", flexDirection: "column", flexShrink: 0, overflow: "hidden" }}
+    <div className="panel-list" style={{ width: 296, display: "flex", flexDirection: "column", flexShrink: 0, overflow: "hidden" }}
       onClick={closeContext}>
 
       {/* Header */}
-      <div style={{ padding: "11px 14px 9px", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 9 }}>
-          <span style={{ fontWeight: 700, fontSize: 14, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 7 }}>
+      <div style={{ padding: "14px 14px 10px", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+          <span style={{ fontWeight: 700, fontSize: 15, color: "var(--text-primary)", letterSpacing: -0.3, display: "flex", alignItems: "center", gap: 8 }}>
             {viewLabel[view]}
             {notes.length > 0 && (
-              <span key={notes.length} className="count-badge" style={{ background: "var(--bg-hover)", color: "var(--text-muted)" }}>
+              <span className="count-badge" style={{ background: "var(--bg-hover)", color: "var(--text-faint)", fontWeight: 600 }}>
                 {notes.length}
               </span>
             )}
@@ -106,42 +115,55 @@ export function NoteList({ notes, view, search, selectedId, loading, onSelect, o
             <button
               onClick={handleNew}
               className="new-note-btn"
-              style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", borderRadius: "50%", width: 27, height: 27, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "white", flexShrink: 0, boxShadow: "0 2px 10px rgba(99,102,241,0.4)", animation: animatingNew ? "bounceIn 0.4s ease" : "none" }}
+              style={{
+                background: "linear-gradient(135deg,#6366f1,#8b5cf6)",
+                border: "none", borderRadius: "50%",
+                width: 28, height: 28,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: "pointer", color: "white", flexShrink: 0,
+                boxShadow: "0 2px 12px rgba(99,102,241,0.45)",
+                animation: animatingNew ? "bounceIn 0.4s ease" : "none"
+              }}
               title="New note (⌘N)">
-              <Plus size={14} strokeWidth={2.8} />
+              <Plus size={14} strokeWidth={3} />
             </button>
           )}
         </div>
+
+        {/* Search */}
         <div style={{ position: "relative" }}>
-          <Search size={13} style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", pointerEvents: "none" }} />
+          <Search size={13} strokeWidth={2} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-faint)", pointerEvents: "none" }} />
           <input
-            ref={searchRef}
             className="search-input"
             type="search"
-            placeholder="Search… (⌘K)"
+            placeholder="Search notes…"
             value={search}
             onChange={(e) => onSearch(e.target.value)}
           />
           {search && (
             <button onClick={() => onSearch("")}
-              style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", display: "flex", padding: 2 }}>
+              style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--text-faint)", display: "flex", padding: 3, borderRadius: 4 }}>
               <X size={12} />
             </button>
           )}
         </div>
       </div>
 
+      {/* Divider */}
+      <div style={{ height: 1, background: "var(--border)", marginBottom: 2, flexShrink: 0 }} />
+
       {/* List */}
       <div style={{ flex: 1, overflowY: "auto" }}>
-        {/* Skeleton loaders */}
+
+        {/* Skeleton */}
         {loading && (
-          <div style={{ padding: "8px 0" }}>
+          <div className="notes-list-body">
             {[1, 2, 3, 4].map(i => (
-              <div key={i} style={{ padding: "11px 16px", borderBottom: "1px solid var(--border)", opacity: 1 - i * 0.15 }}>
-                <div className="skeleton" style={{ height: 13, width: `${65 + i * 7}%`, marginBottom: 8 }} />
-                <div className="skeleton" style={{ height: 11, width: "85%", marginBottom: 5 }} />
-                <div className="skeleton" style={{ height: 11, width: "60%", marginBottom: 8 }} />
-                <div className="skeleton" style={{ height: 10, width: 50 }} />
+              <div key={i} style={{ padding: "14px", background: "var(--bg-card)", borderRadius: 10, border: "1px solid var(--border)", opacity: 1 - i * 0.18 }}>
+                <div className="skeleton" style={{ height: 13, width: `${60 + i * 8}%`, marginBottom: 9 }} />
+                <div className="skeleton" style={{ height: 11, width: "88%", marginBottom: 5 }} />
+                <div className="skeleton" style={{ height: 11, width: "65%", marginBottom: 10 }} />
+                <div className="skeleton" style={{ height: 10, width: 48 }} />
               </div>
             ))}
           </div>
@@ -151,110 +173,142 @@ export function NoteList({ notes, view, search, selectedId, loading, onSelect, o
         {!loading && notes.length === 0 && (
           <div className="empty-state">
             <div className="empty-state-icon">
-              {search ? <Search size={44} strokeWidth={1} /> : <FileText size={44} strokeWidth={1} />}
+              {search ? <Search size={48} strokeWidth={1} /> : <StickyNote size={48} strokeWidth={1} />}
             </div>
-            <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)", opacity: 0.5 }}>
+            <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", opacity: 0.5, marginTop: 4 }}>
               {search ? `No results for "${search}"` : emptyMessages[view]}
             </p>
-            <p style={{ fontSize: 12, color: "var(--text-muted)", textAlign: "center" }}>
+            <p style={{ fontSize: 12, color: "var(--text-faint)", textAlign: "center", maxWidth: 220 }}>
               {search ? "Try a different search term" : emptyHints[view]}
             </p>
             {search && (
               <button onClick={() => onSearch("")}
-                style={{ marginTop: 8, fontSize: 12, color: "var(--accent)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
+                style={{ marginTop: 10, fontSize: 12, color: "var(--accent)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 2 }}>
                 Clear search
               </button>
             )}
           </div>
         )}
 
-        {/* Note cards */}
-        {!loading && notes.map((note, i) => {
-          const words = wc(note.content);
-          return (
-            <div
-              key={note.id}
-              className={`note-card ${selectedId === note.id ? "selected" : ""}`}
-              style={{ "--card-index": Math.min(i, 12) } as React.CSSProperties}
-              onClick={() => onSelect(note.id)}
-              onContextMenu={(e) => handleContextMenu(e, note)}
-              onMouseEnter={() => setHoveredId(note.id)}
-              onMouseLeave={() => setHoveredId(null)}>
+        {/* Note cards — card-gap layout */}
+        {!loading && notes.length > 0 && (
+          <div className="notes-list-body">
+            {notes.map((note, i) => {
+              const words = wc(note.content);
+              const accent = noteAccent(note.id);
+              const isSelected = selectedId === note.id;
+              const isHovered = hoveredId === note.id;
 
-              {/* Title row */}
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 4, marginBottom: 4 }}>
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontWeight: 600, fontSize: 13, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 5 }}>
-                    {note.pinned && <Pin size={9} style={{ color: "var(--pin)", fill: "var(--pin)", flexShrink: 0 }} />}
-                    {note.title
-                      ? highlightText(note.title, search)
-                      : <span style={{ color: "var(--text-muted)", fontStyle: "italic", fontWeight: 400 }}>Untitled</span>}
+              return (
+                <div
+                  key={note.id}
+                  className={`note-card ${isSelected ? "selected" : ""}`}
+                  style={{ "--card-index": Math.min(i, 14) } as React.CSSProperties}
+                  onClick={() => onSelect(note.id)}
+                  onContextMenu={(e) => handleContextMenu(e, note)}
+                  onMouseEnter={() => setHoveredId(note.id)}
+                  onMouseLeave={() => setHoveredId(null)}>
+
+                  {/* Color accent strip */}
+                  <div style={{
+                    position: "absolute", left: 0, top: 10, bottom: 10, width: 3,
+                    borderRadius: "0 3px 3px 0",
+                    background: isSelected || isHovered ? accent : "transparent",
+                    transition: "background 0.18s",
+                    boxShadow: isSelected ? `0 0 8px ${accent}80` : "none"
+                  }} />
+
+                  {/* Title row */}
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 6, marginBottom: 5 }}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{
+                        fontWeight: 650, fontSize: 13, color: "var(--text-primary)",
+                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                        display: "flex", alignItems: "center", gap: 5
+                      }}>
+                        {note.pinned && <Pin size={9} style={{ color: "var(--pin)", fill: "var(--pin)", flexShrink: 0 }} />}
+                        {note.title
+                          ? highlightText(note.title, search)
+                          : <span style={{ color: "var(--text-faint)", fontStyle: "italic", fontWeight: 400 }}>Untitled</span>}
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 4, alignItems: "center", flexShrink: 0 }}>
+                      {note.starred && <Star size={10} style={{ color: "#f59e0b", fill: "#f59e0b" }} />}
+                      {note.archived && !note.trashed && <Archive size={9} style={{ color: "var(--text-faint)", opacity: 0.7 }} />}
+                    </div>
                   </div>
-                </div>
-                <div style={{ display: "flex", gap: 3, alignItems: "center", flexShrink: 0 }}>
-                  {note.starred && <Star size={10} style={{ color: "#f59e0b", fill: "#f59e0b" }} />}
-                  {note.archived && !note.trashed && <Archive size={9} style={{ color: "var(--text-muted)", opacity: 0.6 }} />}
-                </div>
-              </div>
 
-              {/* Preview */}
-              <div style={{ fontSize: 12, color: "var(--note-preview)", lineHeight: 1.45, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", marginBottom: 7 }}>
-                {note.content
-                  ? search ? highlightText(note.content.slice(0, 120), search) : note.content
-                  : <span style={{ fontStyle: "italic", color: "var(--text-muted)" }}>No content</span>}
-              </div>
+                  {/* Preview */}
+                  <div style={{
+                    fontSize: 12, color: "var(--note-preview)", lineHeight: 1.5,
+                    display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
+                    overflow: "hidden", marginBottom: 8
+                  }}>
+                    {note.content
+                      ? search ? highlightText(note.content.slice(0, 130), search) : note.content
+                      : <span style={{ fontStyle: "italic", color: "var(--text-faint)" }}>No content yet</span>}
+                  </div>
 
-              {/* Footer */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
-                <span style={{ fontSize: 11, color: "var(--note-date)" }}>{formatDate(note.updatedAt || note.createdAt)}</span>
-                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  {words > 0 && hoveredId !== note.id && (
-                    <span className="wc-badge">{words}w</span>
-                  )}
-                  {hoveredId === note.id && (
-                    <div style={{ display: "flex", gap: 1, animation: "fadeIn 0.1s ease" }} onClick={e => e.stopPropagation()}>
-                      {view === "trash" ? (
-                        <>
-                          <ActionBtn title="Restore" onClick={() => { onRestore(note); onToast?.("Note restored", "success"); }}><RotateCcw size={10} /></ActionBtn>
-                          <ActionBtn title="Delete forever" onClick={() => { onDeleteForever(note.id); onToast?.("Deleted permanently", "warning"); }} danger><Trash size={10} /></ActionBtn>
-                        </>
-                      ) : (
-                        <>
-                          <ActionBtn title={note.pinned ? "Unpin" : "Pin"} onClick={() => onTogglePin(note)}>
-                            <Pin size={10} style={note.pinned ? { color: "var(--pin)" } : {}} />
-                          </ActionBtn>
-                          <ActionBtn title={note.starred ? "Unstar" : "Star"} onClick={() => onToggleStar(note)}>
-                            <Star size={10} style={note.starred ? { fill: "#f59e0b", color: "#f59e0b" } : {}} />
-                          </ActionBtn>
-                          <ActionBtn title={note.archived ? "Unarchive" : "Archive"} onClick={() => onArchive(note)}>
-                            <Archive size={10} />
-                          </ActionBtn>
-                          <ActionBtn title="Move to trash" onClick={() => onTrash(note)} danger>
-                            <Trash2 size={10} />
-                          </ActionBtn>
-                        </>
+                  {/* Footer */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
+                    <span style={{ fontSize: 10.5, color: "var(--note-date)", fontWeight: 500 }}>
+                      {formatDate(note.updatedAt || note.createdAt)}
+                    </span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                      {words > 0 && !isHovered && (
+                        <span className="wc-badge">{words}w</span>
+                      )}
+                      {isHovered && (
+                        <div style={{ display: "flex", gap: 1, animation: "fadeIn 0.1s ease" }} onClick={e => e.stopPropagation()}>
+                          {view === "trash" ? (
+                            <>
+                              <ActionBtn title="Restore" onClick={() => { onRestore(note); onToast?.("Note restored", "success"); }}><RotateCcw size={11} /></ActionBtn>
+                              <ActionBtn title="Delete forever" onClick={() => { onDeleteForever(note.id); onToast?.("Deleted permanently", "warning"); }} danger><Trash size={11} /></ActionBtn>
+                            </>
+                          ) : (
+                            <>
+                              <ActionBtn title={note.pinned ? "Unpin" : "Pin"} onClick={() => onTogglePin(note)}>
+                                <Pin size={11} style={note.pinned ? { color: "var(--pin)" } : {}} />
+                              </ActionBtn>
+                              <ActionBtn title={note.starred ? "Unstar" : "Star"} onClick={() => onToggleStar(note)}>
+                                <Star size={11} style={note.starred ? { fill: "#f59e0b", color: "#f59e0b" } : {}} />
+                              </ActionBtn>
+                              <ActionBtn title={note.archived ? "Unarchive" : "Archive"} onClick={() => onArchive(note)}>
+                                <Archive size={11} />
+                              </ActionBtn>
+                              <ActionBtn title="Move to trash" onClick={() => onTrash(note)} danger>
+                                <Trash2 size={11} />
+                              </ActionBtn>
+                            </>
+                          )}
+                        </div>
                       )}
                     </div>
-                  )}
+                  </div>
                 </div>
-              </div>
-            </div>
-          );
-        })}
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {/* Footer */}
-      <div style={{ padding: "5px 14px", borderTop: "1px solid var(--border)", fontSize: 11, color: "var(--text-muted)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
-        <span>{notes.length} {notes.length === 1 ? "note" : "notes"}</span>
-        {search && <span style={{ color: "var(--accent)", fontWeight: 500 }}>filtered</span>}
+      {/* Footer bar */}
+      <div style={{
+        padding: "6px 14px", borderTop: "1px solid var(--border)",
+        fontSize: 11, color: "var(--text-faint)",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        flexShrink: 0, background: "var(--bg-sidebar)"
+      }}>
+        <span style={{ fontWeight: 500 }}>{notes.length} {notes.length === 1 ? "note" : "notes"}</span>
+        {search && <span style={{ color: "var(--accent)", fontWeight: 600 }}>filtered</span>}
       </div>
 
       {/* Context menu */}
       {contextMenu && (
         <div className="context-menu"
-          style={{ left: Math.min(contextMenu.x, window.innerWidth - 190), top: Math.min(contextMenu.y, window.innerHeight - 220) }}
+          style={{ left: Math.min(contextMenu.x, window.innerWidth - 195), top: Math.min(contextMenu.y, window.innerHeight - 230) }}
           onClick={e => e.stopPropagation()}>
-          <div style={{ padding: "4px 12px 6px", fontSize: 11, color: "var(--text-muted)", fontWeight: 600, letterSpacing: 0.3 }}>
+          <div style={{ padding: "5px 12px 7px", fontSize: 11, color: "var(--text-faint)", fontWeight: 700, letterSpacing: 0.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 165 }}>
             {contextMenu.note.title || "Untitled"}
           </div>
           <div className="context-divider" />
@@ -272,16 +326,16 @@ export function NoteList({ notes, view, search, selectedId, loading, onSelect, o
 function ActionBtn({ children, onClick, title, danger }: { children: React.ReactNode; onClick: () => void; title: string; danger?: boolean; }) {
   return (
     <button title={title} onClick={onClick}
-      style={{ background: "none", border: "none", cursor: "pointer", padding: "3px 4px", borderRadius: 4, color: "var(--text-muted)", display: "flex", alignItems: "center", transition: "all 0.08s" }}
+      style={{ background: "none", border: "none", cursor: "pointer", padding: "4px 5px", borderRadius: 6, color: "var(--text-faint)", display: "flex", alignItems: "center", transition: "all 0.1s" }}
       onMouseEnter={(e) => {
         const el = e.currentTarget as HTMLButtonElement;
-        el.style.background = danger ? "rgba(248,113,113,0.12)" : "var(--bg-hover)";
+        el.style.background = danger ? "rgba(248,113,113,0.14)" : "var(--bg-hover)";
         el.style.color = danger ? "#f87171" : "var(--text-primary)";
-        el.style.transform = "scale(1.15)";
+        el.style.transform = "scale(1.18)";
       }}
       onMouseLeave={(e) => {
         const el = e.currentTarget as HTMLButtonElement;
-        el.style.background = "none"; el.style.color = "var(--text-muted)"; el.style.transform = "none";
+        el.style.background = "none"; el.style.color = "var(--text-faint)"; el.style.transform = "none";
       }}>
       {children}
     </button>

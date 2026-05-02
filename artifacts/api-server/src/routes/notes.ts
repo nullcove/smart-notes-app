@@ -37,9 +37,8 @@ function mapNote(n: Record<string, unknown>) {
 
 router.get("/notes", requireAuth, async (req, res) => {
   try {
-    const userId = req.user!.id;
     const response = await fetch(
-      `${notesUrl()}?user_id=eq.${encodeURIComponent(userId)}&order=updated_at.desc`,
+      `${notesUrl()}?order=updated_at.desc`,
       { headers: baseHeaders }
     );
     const raw = await response.json() as Array<Record<string, unknown>>;
@@ -58,7 +57,6 @@ router.get("/notes", requireAuth, async (req, res) => {
 router.post("/notes", requireAuth, async (req, res) => {
   try {
     const body = CreateNoteBody.parse(req.body);
-    const userId = req.user!.id;
     const response = await fetch(notesUrl(), {
       method: "POST",
       headers: { ...baseHeaders, "Prefer": "return=representation" },
@@ -69,7 +67,6 @@ router.post("/notes", requireAuth, async (req, res) => {
         archived: false,
         trashed: false,
         pinned: false,
-        user_id: userId,
       }]),
     });
     const raw = await response.json() as Array<Record<string, unknown>>;
@@ -103,9 +100,8 @@ router.patch("/notes/:id", requireAuth, async (req, res) => {
   try {
     const { id } = UpdateNoteParams.parse(req.params);
     const body = UpdateNoteBody.parse(req.body);
-    const userId = req.user!.id;
     const response = await fetch(
-      `${notesUrl()}?id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(userId)}`,
+      `${notesUrl()}?id=eq.${encodeURIComponent(id)}`,
       {
         method: "PATCH",
         headers: { ...baseHeaders, "Prefer": "return=representation" },
@@ -133,9 +129,8 @@ router.patch("/notes/:id", requireAuth, async (req, res) => {
 router.delete("/notes/:id", requireAuth, async (req, res) => {
   try {
     const { id } = DeleteNoteParams.parse(req.params);
-    const userId = req.user!.id;
     const response = await fetch(
-      `${notesUrl()}?id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(userId)}`,
+      `${notesUrl()}?id=eq.${encodeURIComponent(id)}`,
       { method: "DELETE", headers: baseHeaders }
     );
     if (!response.ok) {

@@ -244,15 +244,29 @@ export function Editor({ note, onChange, onToggleStar, onTogglePin, onTrash, onA
 
   if (!note) {
     return (
-      <div className="panel-editor" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 14, color: "var(--text-muted)" }}>
-        <div style={{ animation: "floatIcon 3s ease-in-out infinite" }}>
-          <FileText size={52} strokeWidth={1} style={{ opacity: 0.12 }} />
+      <div className="panel-editor" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16 }}>
+        <div style={{ animation: "floatIcon 3s ease-in-out infinite", opacity: 0.1 }}>
+          <FileText size={58} strokeWidth={0.8} style={{ color: "var(--accent)" }} />
         </div>
-        <p style={{ fontSize: 15, fontWeight: 500 }}>Select a note or create a new one</p>
-        <p style={{ fontSize: 12, opacity: 0.5 }}>⌘N to create · ⌘K to search</p>
-        <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center", maxWidth: 320 }}>
-          {["⌘N New note", "⌘K Search", "⌘/ Shortcuts", "⌘, Settings"].map(hint => (
-            <span key={hint} style={{ fontSize: 11, background: "var(--bg-hover)", border: "1px solid var(--border)", borderRadius: 6, padding: "3px 9px", color: "var(--text-muted)" }}>{hint}</span>
+        <div style={{ textAlign: "center" }}>
+          <p style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", opacity: 0.4, marginBottom: 6, letterSpacing: -0.3 }}>No note selected</p>
+          <p style={{ fontSize: 12.5, color: "var(--text-faint)" }}>Pick a note from the list or create a new one</p>
+        </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center", maxWidth: 340, marginTop: 4 }}>
+          {[
+            { key: "⌘N", label: "New note" },
+            { key: "⌘K", label: "Search" },
+            { key: "⌘/", label: "Shortcuts" },
+            { key: "⌘,", label: "AI Settings" },
+          ].map(h => (
+            <span key={h.key} style={{
+              fontSize: 11.5, background: "var(--bg-hover)", border: "1px solid var(--border)",
+              borderRadius: 8, padding: "5px 11px", color: "var(--text-faint)",
+              display: "flex", alignItems: "center", gap: 6
+            }}>
+              <kbd style={{ background: "var(--border)", padding: "1px 5px", borderRadius: 4, fontSize: 10, fontWeight: 700, color: "var(--text-muted)" }}>{h.key}</kbd>
+              {h.label}
+            </span>
           ))}
         </div>
       </div>
