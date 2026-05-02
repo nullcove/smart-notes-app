@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   basePath,
   trailingSlash: false,
   images: { unoptimized: true },
+  allowedDevOrigins: ["*"],
   async rewrites() {
     return [
       {
