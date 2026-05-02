@@ -1,59 +1,375 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { X, Eye, EyeOff, CheckCircle, XCircle, Loader2, ExternalLink, Key, Sparkles } from "lucide-react";
-import { getGeminiKey, setGeminiKey, testGeminiKey } from "@/lib/gemini";
+import { useState, useCallback } from "react";
+import {
+  X, Eye, EyeOff, CheckCircle, XCircle, Loader2,
+  ExternalLink, Sparkles, Wifi, WifiOff, RefreshCw,
+  Server, Brain, Globe, Cpu, ChevronRight, AlertTriangle, Zap,
+} from "lucide-react";
 
-interface Props {
-  onClose: () => void;
-}
+interface Props { onClose: () => void; }
 
-export function SettingsModal({ onClose }: Props) {
-  const [apiKey, setApiKey] = useState("");
-  const [showKey, setShowKey] = useState(false);
+// ─── Provider definitions ────────────────────────────────────────────────────
+
+const PROVIDERS = [
+  {
+    id: "openai", name: "OpenAI", emoji: "🤖", color: "#10b981",
+    models: ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"],
+    testUrl: (_k: string) => "https://api.openai.com/v1/models",
+    testHeaders: (k: string) => ({ Authorization: `Bearer ${k}` }),
+    placeholder: "sk-...",
+    docsUrl: "https://platform.openai.com/api-keys",
+  },
+  {
+    id: "anthropic", name: "Anthropic", emoji: "✦", color: "#f59e0b",
+    models: ["claude-3-5-sonnet", "claude-3-5-haiku", "claude-3-opus"],
+    testUrl: (_k: string) => "https://api.anthropic.com/v1/models",
+    testHeaders: (k: string) => ({ "x-api-key": k, "anthropic-version": "2023-06-01" }),
+    placeholder: "sk-ant-...",
+    docsUrl: "https://console.anthropic.com/settings/keys",
+  },
+  {
+    id: "gemini", name: "Google Gemini", emoji: "♊", color: "#6366f1",
+    models: ["gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.5-flash"],
+    testUrl: (k: string) => `https://generativelanguage.googleapis.com/v1beta/models?key=${k}`,
+    testHeaders: (_k: string) => ({} as Record<string,string>),
+    placeholder: "AIza...",
+    docsUrl: "https://aistudio.google.com/apikey",
+  },
+  {
+    id: "groq", name: "Groq", emoji: "⚡", color: "#f97316",
+    models: ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"],
+    testUrl: (_k: string) => "https://api.groq.com/openai/v1/models",
+    testHeaders: (k: string) => ({ Authorization: `Bearer ${k}` }),
+    placeholder: "gsk_...",
+    docsUrl: "https://console.groq.com/keys",
+  },
+  {
+    id: "mistral", name: "Mistral AI", emoji: "🌊", color: "#8b5cf6",
+    models: ["mistral-large-latest", "mistral-small-latest", "codestral-latest"],
+    testUrl: (_k: string) => "https://api.mistral.ai/v1/models",
+    testHeaders: (k: string) => ({ Authorization: `Bearer ${k}` }),
+    placeholder: "...",
+    docsUrl: "https://console.mistral.ai/api-keys",
+  },
+  {
+    id: "openrouter", name: "OpenRouter", emoji: "🔀", color: "#ec4899",
+    models: ["openai/gpt-4o", "anthropic/claude-3.5-sonnet", "meta-llama/llama-3.1-405b"],
+    testUrl: (_k: string) => "https://openrouter.ai/api/v1/models",
+    testHeaders: (k: string) => ({ Authorization: `Bearer ${k}` }),
+    placeholder: "sk-or-...",
+    docsUrl: "https://openrouter.ai/settings/keys",
+  },
+  {
+    id: "xai", name: "xAI (Grok)", emoji: "𝕏", color: "#94a3b8",
+    models: ["grok-2", "grok-2-vision-1212", "grok-beta"],
+    testUrl: (_k: string) => "https://api.x.ai/v1/models",
+    testHeaders: (k: string) => ({ Authorization: `Bearer ${k}` }),
+    placeholder: "xai-...",
+    docsUrl: "https://console.x.ai",
+  },
+  {
+    id: "cohere", name: "Cohere", emoji: "🌀", color: "#38bdf8",
+    models: ["command-r-plus", "command-r", "command-light"],
+    testUrl: (_k: string) => "https://api.cohere.com/v1/models",
+    testHeaders: (k: string) => ({ Authorization: `Bearer ${k}` }),
+    placeholder: "...",
+    docsUrl: "https://dashboard.cohere.com/api-keys",
+  },
+];
+
+// ─── localStorage helpers ────────────────────────────────────────────────────
+const LS = "smart-ins-note-ai-";
+const getKey = (id: string) => (typeof window !== "undefined" ? localStorage.getItem(`${LS}${id}`) ?? "" : "");
+const saveKey = (id: string, v: string) => v ? localStorage.setItem(`${LS}${id}`, v) : localStorage.removeItem(`${LS}${id}`);
+const getOllamaUrl = () => (typeof window !== "undefined" ? localStorage.getItem(`${LS}ollama-url`) ?? "" : "");
+const saveOllamaUrl = (v: string) => v ? localStorage.setItem(`${LS}ollama-url`, v) : localStorage.removeItem(`${LS}ollama-url`);
+
+// Also keep backward compat with gemini key used by gemini.ts
+const GEMINI_COMPAT = "smart-ins-note-gemini-key";
+
+// ─── Styles ─────────────────────────────────────────────────────────────────
+const S = {
+  overlay: { position: "fixed" as const, inset: 0, zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center" },
+  backdrop: { position: "absolute" as const, inset: 0, background: "rgba(0,0,0,0.65)", backdropFilter: "blur(6px)" },
+  modal: { position: "relative" as const, width: "100%", maxWidth: 620, maxHeight: "90vh", display: "flex", flexDirection: "column" as const, background: "var(--bg-panel)", border: "1px solid var(--border)", borderRadius: 20, boxShadow: "0 30px 90px rgba(0,0,0,0.6)", margin: 16, overflow: "hidden" },
+  header: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px 0", flexShrink: 0 },
+  tabs: { display: "flex", gap: 4, padding: "16px 24px 0", borderBottom: "1px solid var(--border)", flexShrink: 0 },
+  body: { flex: 1, overflowY: "auto" as const, padding: "20px 24px" },
+  card: { borderRadius: 14, border: "1px solid var(--border)", background: "var(--bg-card)", overflow: "hidden", marginBottom: 10 },
+  cardHead: { display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: "1px solid var(--border)" },
+  cardBody: { padding: "12px 16px" },
+  input: { width: "100%", background: "var(--bg-editor)", border: "1px solid var(--border)", borderRadius: 10, padding: "9px 40px 9px 12px", fontSize: 13, color: "var(--text-primary)", outline: "none", boxSizing: "border-box" as const, fontFamily: "monospace" },
+  btn: (bg: string, disabled?: boolean): React.CSSProperties => ({ padding: "8px 14px", borderRadius: 8, border: "none", background: disabled ? "var(--bg-hover)" : bg, cursor: disabled ? "not-allowed" : "pointer", color: disabled ? "var(--text-muted)" : "white", fontSize: 12, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 5, opacity: disabled ? 0.5 : 1, whiteSpace: "nowrap" as const, flexShrink: 0 }),
+  outlineBtn: (disabled?: boolean): React.CSSProperties => ({ padding: "8px 14px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg-hover)", cursor: disabled ? "not-allowed" : "pointer", color: disabled ? "var(--text-muted)" : "var(--text-primary)", fontSize: 12, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5, opacity: disabled ? 0.5 : 1, whiteSpace: "nowrap" as const, flexShrink: 0 }),
+};
+
+// ─── ProviderCard ────────────────────────────────────────────────────────────
+function ProviderCard({ p }: { p: typeof PROVIDERS[0] }) {
+  const [key, setKey] = useState(() => p.id === "gemini" ? (getKey(p.id) || (typeof window !== "undefined" ? localStorage.getItem(GEMINI_COMPAT) ?? "" : "")) : getKey(p.id));
+  const [show, setShow] = useState(false);
   const [testing, setTesting] = useState(false);
-  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
-  const [saved, setSaved] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; msg: string; ms?: number } | null>(null);
+  const savedKey = p.id === "gemini" ? (getKey(p.id) || (typeof window !== "undefined" ? localStorage.getItem(GEMINI_COMPAT) ?? "" : "")) : getKey(p.id);
+  const dirty = key !== savedKey;
 
-  useEffect(() => {
-    setApiKey(getGeminiKey());
-  }, []);
-
-  async function handleTest() {
-    if (!apiKey.trim()) return;
-    setTesting(true);
-    setTestResult(null);
-    const result = await testGeminiKey(apiKey.trim());
-    setTestResult(result);
-    setTesting(false);
+  function doSave() {
+    saveKey(p.id, key.trim());
+    if (p.id === "gemini") { // keep backward compat
+      if (key.trim()) localStorage.setItem(GEMINI_COMPAT, key.trim());
+      else localStorage.removeItem(GEMINI_COMPAT);
+    }
+    setResult(null);
   }
 
-  function handleSave() {
-    setGeminiKey(apiKey.trim());
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  }
-
-  function handleClear() {
-    setApiKey("");
-    setGeminiKey("");
-    setTestResult(null);
+  async function doTest() {
+    if (!key.trim()) return;
+    setTesting(true); setResult(null);
+    const t0 = Date.now();
+    try {
+      const res = await fetch(p.testUrl(key.trim()), { headers: p.testHeaders(key.trim()) });
+      const ms = Date.now() - t0;
+      if (res.ok) setResult({ ok: true, msg: "Connected!", ms });
+      else {
+        const body = await res.json().catch(() => ({})) as { error?: { message?: string } };
+        setResult({ ok: false, msg: body?.error?.message ?? `HTTP ${res.status}` });
+      }
+    } catch { setResult({ ok: false, msg: "Network error — check CORS or key" }); }
+    finally { setTesting(false); }
   }
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div onClick={onClose} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }} />
-      <div style={{ position: "relative", width: "100%", maxWidth: 480, background: "var(--bg-panel)", border: "1px solid var(--border)", borderRadius: 18, boxShadow: "0 25px 80px rgba(0,0,0,0.5)", padding: 28, margin: 16 }}>
-        
+    <div style={S.card}>
+      <div style={S.cardHead}>
+        <div style={{ width: 34, height: 34, borderRadius: 9, background: `${p.color}22`, border: `1px solid ${p.color}44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>
+          {p.emoji}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 700, fontSize: 13, color: "var(--text-primary)" }}>{p.name}</div>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {p.models.slice(0, 2).join(" · ")}
+          </div>
+        </div>
+        {result && (
+          <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 20, background: result.ok ? "rgba(16,185,129,0.12)" : "rgba(239,68,68,0.12)", color: result.ok ? "#10b981" : "#f87171", display: "inline-flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+            {result.ok ? <CheckCircle size={11} /> : <XCircle size={11} />}
+            {result.ok ? `OK · ${result.ms}ms` : "Failed"}
+          </span>
+        )}
+        {!result && !!savedKey && !dirty && (
+          <span style={{ fontSize: 11, color: "var(--text-muted)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#10b981", display: "inline-block" }} />Saved
+          </span>
+        )}
+      </div>
+      <div style={S.cardBody}>
+        <div style={{ display: "flex", gap: 8, marginBottom: result && !result.ok ? 8 : 0 }}>
+          <div style={{ position: "relative", flex: 1 }}>
+            <input
+              type={show ? "text" : "password"}
+              value={key}
+              onChange={e => { setKey(e.target.value); setResult(null); }}
+              placeholder={p.placeholder}
+              style={S.input}
+            />
+            <button onClick={() => setShow(s => !s)} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", display: "flex", padding: 0 }}>
+              {show ? <EyeOff size={14} /> : <Eye size={14} />}
+            </button>
+          </div>
+          <button onClick={doSave} disabled={!key.trim() || !dirty} style={S.btn("#6366f1", !key.trim() || !dirty)}>Save</button>
+          <button onClick={doTest} disabled={testing || !key.trim()} style={S.outlineBtn(testing || !key.trim())}>
+            {testing ? <Loader2 size={12} style={{ animation: "spin 1s linear infinite" }} /> : <Zap size={12} />}
+            {testing ? "" : "Test"}
+          </button>
+        </div>
+        {result && !result.ok && (
+          <p style={{ fontSize: 11, color: "#f87171", display: "flex", alignItems: "center", gap: 5, margin: 0 }}>
+            <AlertTriangle size={11} />{result.msg}
+          </p>
+        )}
+        <a href={p.docsUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: "var(--text-muted)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 3, marginTop: 8 }}>
+          Get API key <ExternalLink size={10} />
+        </a>
+      </div>
+    </div>
+  );
+}
+
+// ─── OllamaPanel ─────────────────────────────────────────────────────────────
+interface OllamaModel { name: string; modified_at?: string; size?: number; details?: { parameter_size?: string; family?: string }; }
+
+function OllamaPanel() {
+  const [url, setUrl] = useState(() => getOllamaUrl());
+  const [savedUrl, setSavedUrl] = useState(() => getOllamaUrl());
+  const [testing, setTesting] = useState(false);
+  const [status, setStatus] = useState<"idle"|"ok"|"error">("idle");
+  const [pingMs, setPingMs] = useState<number|null>(null);
+  const [version, setVersion] = useState<string|null>(null);
+  const [models, setModels] = useState<OllamaModel[]>([]);
+  const [errMsg, setErrMsg] = useState("");
+  const dirty = url !== savedUrl;
+
+  function doSave() { saveOllamaUrl(url.trim()); setSavedUrl(url.trim()); setStatus("idle"); setModels([]); }
+
+  const doTest = useCallback(async () => {
+    const base = url.trim().replace(/\/+$/, "");
+    if (!base) return;
+    setTesting(true); setStatus("idle"); setModels([]); setPingMs(null); setVersion(null); setErrMsg("");
+    try {
+      const t0 = Date.now();
+      const vRes = await fetch(`${base}/api/version`, { signal: AbortSignal.timeout(8000) });
+      const ms = Date.now() - t0;
+      if (!vRes.ok) throw new Error(`HTTP ${vRes.status}`);
+      const vData = await vRes.json() as { version?: string };
+      setPingMs(ms); setVersion(vData.version ?? "unknown");
+      const mRes = await fetch(`${base}/api/tags`, { signal: AbortSignal.timeout(10000) });
+      if (mRes.ok) { const md = await mRes.json() as { models?: OllamaModel[] }; setModels(md.models ?? []); }
+      setStatus("ok"); saveOllamaUrl(base); setSavedUrl(base); setUrl(base);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Connection failed";
+      setStatus("error"); setErrMsg(msg.includes("timeout") ? "Timed out — check URL / Cloudflare tunnel" : msg);
+    } finally { setTesting(false); }
+  }, [url]);
+
+  function fmtSize(b?: number) { if (!b) return ""; const gb = b/1073741824; return gb>1?`${gb.toFixed(1)} GB`:`${(b/1048576).toFixed(0)} MB`; }
+
+  return (
+    <div>
+      {/* Info */}
+      <div style={{ borderRadius: 12, border: "1px solid rgba(99,102,241,0.25)", background: "rgba(99,102,241,0.06)", padding: "12px 16px", marginBottom: 14, display: "flex", gap: 12 }}>
+        <Cpu size={18} color="#818cf8" style={{ flexShrink: 0, marginTop: 2 }} />
+        <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.7 }}>
+          <strong style={{ color: "var(--text-primary)" }}>Ollama — Local or Cloud GPU</strong><br />
+          Run Ollama locally or on a cloud GPU. Use <code style={{ fontSize: 11, background: "var(--bg-editor)", padding: "1px 5px", borderRadius: 4 }}>cloudflared tunnel --url http://localhost:11434</code> to expose it, then paste the URL below. No API key needed.
+        </div>
+      </div>
+
+      {/* URL input */}
+      <div style={{ ...S.card, marginBottom: 14 }}>
+        <div style={{ ...S.cardHead, borderBottom: "1px solid var(--border)" }}>
+          <Globe size={15} color="var(--text-muted)" />
+          <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1 }}>Base URL</span>
+        </div>
+        <div style={S.cardBody}>
+          <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+            <input
+              value={url}
+              onChange={e => { setUrl(e.target.value); setStatus("idle"); }}
+              placeholder="http://localhost:11434  or  https://my-tunnel.trycloudflare.com"
+              style={{ ...S.input, fontFamily: "monospace", paddingRight: 12 }}
+            />
+            <button onClick={doSave} disabled={!url.trim() || !dirty} style={S.btn("var(--bg-hover)", !url.trim() || !dirty) as React.CSSProperties}>Save</button>
+            <button
+              onClick={doTest} disabled={testing || !url.trim()}
+              style={S.btn(testing ? "var(--bg-hover)" : "#6366f1", testing || !url.trim())}
+            >
+              {testing ? <Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} /> : <RefreshCw size={13} />}
+              {testing ? "Testing…" : "Test & Detect"}
+            </button>
+          </div>
+
+          {/* Status */}
+          {status !== "idle" && (
+            <div style={{ borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", gap: 10, background: status === "ok" ? "rgba(16,185,129,0.07)" : "rgba(239,68,68,0.07)", border: `1px solid ${status === "ok" ? "rgba(16,185,129,0.2)" : "rgba(239,68,68,0.2)"}` }}>
+              {status === "ok" ? <Wifi size={16} color="#10b981" /> : <WifiOff size={16} color="#f87171" />}
+              <div style={{ flex: 1 }}>
+                {status === "ok" ? (
+                  <>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#10b981" }}>Connected!</div>
+                    <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                      Ollama {version} · Ping {pingMs}ms · {models.length} model{models.length !== 1 ? "s" : ""} detected
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#f87171" }}>Connection failed</div>
+                    <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{errMsg}</div>
+                  </>
+                )}
+              </div>
+              {status === "ok" && (
+                <span style={{ fontSize: 11, fontWeight: 800, color: "#10b981", background: "rgba(16,185,129,0.12)", padding: "3px 10px", borderRadius: 20 }}>{pingMs}ms</span>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Models list */}
+      {models.length > 0 && (
+        <div style={S.card}>
+          <div style={{ ...S.cardHead, borderBottom: "1px solid var(--border)" }}>
+            <Server size={15} color="var(--text-muted)" />
+            <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1 }}>Detected Models</span>
+            <span style={{ marginLeft: "auto", fontSize: 11, fontWeight: 700, color: "#818cf8", background: "rgba(99,102,241,0.1)", padding: "2px 10px", borderRadius: 20 }}>{models.length} found</span>
+          </div>
+          <div style={{ maxHeight: 260, overflowY: "auto" }}>
+            {models.map((m, i) => {
+              const family = m.details?.family ?? m.name.split(":")[0];
+              const tag = m.name.includes(":") ? m.name.split(":")[1] : "latest";
+              return (
+                <div key={m.name} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", borderTop: i > 0 ? "1px solid var(--border)" : undefined }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 9, background: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <Brain size={15} color="#818cf8" />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name}</div>
+                    <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                      {family}{m.details?.parameter_size ? ` · ${m.details.parameter_size}` : ""}{fmtSize(m.size) ? ` · ${fmtSize(m.size)}` : ""}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                    <code style={{ fontSize: 10, background: "var(--bg-editor)", padding: "2px 6px", borderRadius: 5, color: "var(--text-muted)" }}>{tag}</code>
+                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#10b981" }} title="Available" />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!savedUrl && status === "idle" && (
+        <div style={{ textAlign: "center", padding: "36px 20px", border: "1px dashed var(--border)", borderRadius: 14 }}>
+          <Server size={32} color="var(--text-faint)" style={{ margin: "0 auto 12px" }} />
+          <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)", margin: "0 0 6px" }}>No Ollama URL configured</p>
+          <p style={{ fontSize: 12, color: "var(--text-faint)", margin: "0 0 16px", lineHeight: 1.6 }}>Enter your Ollama base URL above and click "Test & Detect" to discover available models.</p>
+          <code style={{ fontSize: 11, background: "var(--bg-editor)", border: "1px solid var(--border)", padding: "6px 14px", borderRadius: 8, color: "var(--text-muted)" }}>
+            cloudflared tunnel --url http://localhost:11434
+          </code>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Main Modal ───────────────────────────────────────────────────────────────
+type Tab = "cloud" | "ollama";
+
+export function SettingsModal({ onClose }: Props) {
+  const [tab, setTab] = useState<Tab>("cloud");
+
+  const tabStyle = (active: boolean): React.CSSProperties => ({
+    padding: "8px 18px", border: "none", background: "none", cursor: "pointer",
+    fontSize: 13, fontWeight: 600, color: active ? "var(--accent)" : "var(--text-muted)",
+    borderBottom: active ? "2px solid var(--accent)" : "2px solid transparent",
+    marginBottom: -1, transition: "color 0.15s",
+  });
+
+  return (
+    <div style={S.overlay}>
+      <div onClick={onClose} style={S.backdrop} />
+      <div style={S.modal}>
         {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={S.header}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Sparkles size={17} color="white" />
             </div>
             <div>
               <h2 style={{ fontWeight: 800, fontSize: 17, color: "var(--text-primary)", margin: 0 }}>AI Settings</h2>
-              <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>Powered by Google Gemini</p>
+              <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>Configure cloud providers and local Ollama models</p>
             </div>
           </div>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: 6, borderRadius: 8, color: "var(--text-muted)", display: "flex" }}>
@@ -61,59 +377,28 @@ export function SettingsModal({ onClose }: Props) {
           </button>
         </div>
 
-        {/* Info box */}
-        <div style={{ padding: "12px 14px", borderRadius: 10, background: "rgba(99,102,241,0.07)", border: "1px solid rgba(99,102,241,0.2)", marginBottom: 20, fontSize: 13, color: "var(--text-muted)", lineHeight: 1.6 }}>
-          Your API key is stored <strong style={{ color: "var(--text-primary)" }}>only in your browser</strong> (localStorage). It is never sent to our servers or GitHub.
-          <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "#818cf8", marginLeft: 6, textDecoration: "none", fontWeight: 600 }}>
-            Get a free key <ExternalLink size={11} />
-          </a>
+        {/* Privacy note */}
+        <div style={{ margin: "14px 24px 0", padding: "10px 14px", borderRadius: 10, background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.18)", fontSize: 12, color: "var(--text-muted)" }}>
+          🔒 All API keys are stored <strong style={{ color: "var(--text-primary)" }}>only in your browser</strong> (localStorage). They are never sent to our servers.
         </div>
 
-        {/* API Key input */}
-        <label style={{ display: "block", marginBottom: 8, fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
-          <Key size={12} style={{ display: "inline", marginRight: 6 }} />
-          Gemini API Key
-        </label>
-        <div style={{ position: "relative", marginBottom: 14 }}>
-          <input
-            type={showKey ? "text" : "password"}
-            value={apiKey}
-            onChange={e => setApiKey(e.target.value)}
-            placeholder="AIza..."
-            style={{ width: "100%", background: "var(--bg-editor)", border: "1px solid var(--border)", borderRadius: 10, padding: "11px 44px 11px 14px", fontSize: 14, color: "var(--text-primary)", outline: "none", boxSizing: "border-box", fontFamily: "monospace" }}
-            onFocus={e => (e.currentTarget.style.borderColor = "var(--accent)")}
-            onBlur={e => (e.currentTarget.style.borderColor = "var(--border)")}
-          />
-          <button onClick={() => setShowKey(s => !s)} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", display: "flex" }}>
-            {showKey ? <EyeOff size={15} /> : <Eye size={15} />}
-          </button>
+        {/* Tabs */}
+        <div style={S.tabs}>
+          <button style={tabStyle(tab === "cloud")} onClick={() => setTab("cloud")}>☁ Cloud Providers</button>
+          <button style={tabStyle(tab === "ollama")} onClick={() => setTab("ollama")}>🖥 Ollama (Local / Cloud)</button>
         </div>
 
-        {/* Test result */}
-        {testResult && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 8, marginBottom: 14, background: testResult.ok ? "rgba(16,185,129,0.08)" : "rgba(239,68,68,0.08)", border: `1px solid ${testResult.ok ? "rgba(16,185,129,0.25)" : "rgba(239,68,68,0.25)"}`, fontSize: 13, color: testResult.ok ? "#10b981" : "#f87171" }}>
-            {testResult.ok ? <CheckCircle size={15} /> : <XCircle size={15} />}
-            {testResult.message}
-          </div>
-        )}
-
-        {/* Action buttons */}
-        <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
-          <button onClick={handleTest} disabled={!apiKey.trim() || testing}
-            style={{ flex: 1, padding: "10px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg-hover)", cursor: apiKey.trim() ? "pointer" : "not-allowed", color: "var(--text-primary)", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, opacity: !apiKey.trim() ? 0.5 : 1 }}>
-            {testing ? <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> : null}
-            {testing ? "Testing…" : "Test Key"}
-          </button>
-          <button onClick={handleSave} disabled={!apiKey.trim()}
-            style={{ flex: 1, padding: "10px", borderRadius: 10, border: "none", background: saved ? "#10b981" : "linear-gradient(135deg,#6366f1,#8b5cf6)", cursor: apiKey.trim() ? "pointer" : "not-allowed", color: "white", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, opacity: !apiKey.trim() ? 0.5 : 1, transition: "background 0.3s" }}>
-            {saved ? <><CheckCircle size={14} /> Saved!</> : "Save Key"}
-          </button>
-          {apiKey && (
-            <button onClick={handleClear}
-              style={{ padding: "10px 14px", borderRadius: 10, border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.07)", cursor: "pointer", color: "#f87171", fontSize: 13, fontWeight: 600 }}>
-              Clear
-            </button>
+        {/* Body */}
+        <div style={S.body}>
+          {tab === "cloud" && (
+            <div>
+              <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 14px", lineHeight: 1.6 }}>
+                Add API keys for any cloud AI provider. Keys are tested directly from your browser.
+              </p>
+              {PROVIDERS.map(p => <ProviderCard key={p.id} p={p} />)}
+            </div>
           )}
+          {tab === "ollama" && <OllamaPanel />}
         </div>
 
         <style>{`
