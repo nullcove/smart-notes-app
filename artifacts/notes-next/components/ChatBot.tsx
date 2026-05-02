@@ -81,42 +81,60 @@ export function ChatBot({ notes, onCreateNote, onUpdateNote, onDeleteNote, onOpe
     setMessages(prev => [...prev, { ...msg, id }]);
   }
 
+  // Use a ref so handleSend always gets the latest callbacks without stale closures
+  const onCreateNoteRef = useRef(onCreateNote);
+  const onUpdateNoteRef = useRef(onUpdateNote);
+  const onDeleteNoteRef = useRef(onDeleteNote);
+  const onOpenNoteRef = useRef(onOpenNote);
+  const onToastRef = useRef(onToast);
+  onCreateNoteRef.current = onCreateNote;
+  onUpdateNoteRef.current = onUpdateNote;
+  onDeleteNoteRef.current = onDeleteNote;
+  onOpenNoteRef.current = onOpenNote;
+  onToastRef.current = onToast;
+
   const toolCallbacks: ToolCallbacks = {
     listNotes: () => notesRef.current,
     createNote: async (title, content) => {
       addDisplay({ role: "action", content: `Creating note: "${title}"`, actionType: "create_note" });
-      const note = await onCreateNote(title, content);
-      onToast(`Note created: "${title}"`, "success");
+      const note = await onCreateNoteRef.current(title, content);
+      onToastRef.current(`Note created: "${title}"`, "success");
       return note;
     },
     updateNote: async (id, fields) => {
       const note = notesRef.current.find(n => n.id === id);
       const label = note?.title || id;
       addDisplay({ role: "action", content: `Updating: "${label}"`, actionType: "update_note" });
-      const updated = await onUpdateNote(id, fields);
+      const updated = await onUpdateNoteRef.current(id, fields);
       return updated;
     },
     deleteNote: async (id) => {
       const note = notesRef.current.find(n => n.id === id);
       const label = note?.title || id;
+      // Fire display AFTER successful delete — not before
+      await onDeleteNoteRef.current(id);
       addDisplay({ role: "action", content: `Deleted: "${label}"`, actionType: "delete_note" });
-      await onDeleteNote(id);
-      onToast(`Note deleted: "${label}"`, "info");
+      onToastRef.current(`Deleted: "${label}"`, "info");
     },
     openNote: (id) => {
       const note = notesRef.current.find(n => n.id === id);
       const label = note?.title || id;
       addDisplay({ role: "action", content: `Opened: "${label}"`, actionType: "open_note" });
-      onOpenNote(id);
+      onOpenNoteRef.current(id);
     },
   };
+
+  // Keep toolCallbacks in a ref so handleSend never captures a stale copy
+  const toolCallbacksRef = useRef(toolCallbacks);
+  toolCallbacksRef.current = toolCallbacks;
 
   const handleSend = useCallback(async () => {
     const text = input.trim();
     if (!text || loading) return;
 
-    if (!active) {
-      onToast("Select an AI model in Settings → AI Settings first", "error");
+    const currentActive = getActiveProvider();
+    if (!currentActive) {
+      onToastRef.current("Select an AI model in Settings → AI Settings first", "error");
       return;
     }
 
@@ -127,7 +145,7 @@ export function ChatBot({ notes, onCreateNote, onUpdateNote, onDeleteNote, onOpe
     const newHistory: ChatMessage[] = [...history, { role: "user", content: text }];
 
     try {
-      const reply = await callAI(text, history, toolCallbacks);
+      const reply = await callAI(text, history, toolCallbacksRef.current);
       addDisplay({ role: "assistant", content: reply });
       setHistory([...newHistory, { role: "assistant", content: reply }]);
     } catch (e: unknown) {
@@ -137,7 +155,7 @@ export function ChatBot({ notes, onCreateNote, onUpdateNote, onDeleteNote, onOpe
       setLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [input, loading, history, active]);
+  }, [input, loading, history]);
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
