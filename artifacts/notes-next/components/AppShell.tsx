@@ -176,7 +176,7 @@ export function AppShell() {
             Create Account
           </Link>
         </div>
-        <Link href="/" style={{ fontSize: 13, color: "var(--text-muted)", textDecoration: "none", marginTop: 8 }}>← Back to Home</Link>
+        <p style={{ fontSize: 12, color: "#1e293b", marginTop: 8 }}>Your notes sync securely across all devices</p>
       </div>
     );
   }

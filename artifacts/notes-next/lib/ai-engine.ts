@@ -38,6 +38,13 @@ export interface ToolCallbacks {
   openNote: (id: string) => void;
 }
 
+export interface AIResult {
+  reply: string;
+  toolCalls: string[];
+  usage?: { prompt: number; completion: number; total: number };
+  durationMs: number;
+}
+
 // ─── Tool definitions (OpenAI format) ────────────────────────────────────────
 
 export const TOOLS_OPENAI = [
@@ -257,7 +264,10 @@ async function callOpenAICompat(
   model: string,
   messages: ChatMessage[],
   cb: ToolCallbacks,
-): Promise<string> {
+): Promise<AIResult> {
+  const startMs = Date.now();
+  const toolCallNames: string[] = [];
+  let totalPrompt = 0, totalCompletion = 0, totalTokens = 0;
   let msgs = [...messages];
   for (let i = 0; i < 8; i++) {
     const res = await fetch(`${baseUrl}/chat/completions`, {
@@ -270,25 +280,24 @@ async function callOpenAICompat(
       throw new Error(err?.error?.message ?? `HTTP ${res.status}`);
     }
     const data = await res.json() as {
-      choices: Array<{
-        message: { role: string; content: string | null; tool_calls?: Array<{ id: string; type: string; function: { name: string; arguments: string } }> };
-        finish_reason: string;
-      }>;
+      choices: Array<{ message: { role: string; content: string | null; tool_calls?: Array<{ id: string; type: string; function: { name: string; arguments: string } }> }; finish_reason: string }>;
+      usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
     };
+    if (data.usage) { totalPrompt += data.usage.prompt_tokens; totalCompletion += data.usage.completion_tokens; totalTokens += data.usage.total_tokens; }
     const msg = data.choices[0].message;
     msgs.push({ role: "assistant", content: msg.content, tool_calls: msg.tool_calls });
-
-    if (!msg.tool_calls?.length) return msg.content ?? "";
-
-    // Execute tools
+    if (!msg.tool_calls?.length) {
+      return { reply: msg.content ?? "", toolCalls: toolCallNames, usage: totalTokens ? { prompt: totalPrompt, completion: totalCompletion, total: totalTokens } : undefined, durationMs: Date.now() - startMs };
+    }
     for (const tc of msg.tool_calls) {
+      toolCallNames.push(tc.function.name);
       let args: Record<string, unknown> = {};
       try { args = JSON.parse(tc.function.arguments); } catch { args = {}; }
       const result = await executeTool(tc.function.name, args, cb);
       msgs.push({ role: "tool", content: result, tool_call_id: tc.id, name: tc.function.name });
     }
   }
-  return "Reached maximum tool call depth.";
+  return { reply: "Reached maximum tool call depth.", toolCalls: toolCallNames, usage: totalTokens ? { prompt: totalPrompt, completion: totalCompletion, total: totalTokens } : undefined, durationMs: Date.now() - startMs };
 }
 
 // ─── Anthropic call ────────────────────────────────────────────────────────────
@@ -298,56 +307,43 @@ async function callAnthropic(
   model: string,
   messages: ChatMessage[],
   cb: ToolCallbacks,
-): Promise<string> {
-  const anthropicTools = TOOLS_OPENAI.map(t => ({
-    name: t.function.name,
-    description: t.function.description,
-    input_schema: t.function.parameters,
-  }));
-
+): Promise<AIResult> {
+  const startMs = Date.now();
+  const toolCallNames: string[] = [];
+  let totalPrompt = 0, totalCompletion = 0;
+  const anthropicTools = TOOLS_OPENAI.map(t => ({ name: t.function.name, description: t.function.description, input_schema: t.function.parameters }));
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const msgs: any[] = messages.filter(m => m.role !== "system").map(m => {
-    if (m.role === "tool") {
-      return { role: "user", content: [{ type: "tool_result", tool_use_id: m.tool_call_id, content: m.content ?? "" }] };
-    }
-    if (m.tool_calls?.length) {
-      return {
-        role: "assistant",
-        content: [
-          ...(m.content ? [{ type: "text", text: m.content }] : []),
-          ...m.tool_calls.map(tc => ({ type: "tool_use", id: tc.id, name: tc.function.name, input: JSON.parse(tc.function.arguments || "{}") })),
-        ],
-      };
-    }
+    if (m.role === "tool") return { role: "user", content: [{ type: "tool_result", tool_use_id: m.tool_call_id, content: m.content ?? "" }] };
+    if (m.tool_calls?.length) return { role: "assistant", content: [...(m.content ? [{ type: "text", text: m.content }] : []), ...m.tool_calls.map(tc => ({ type: "tool_use", id: tc.id, name: tc.function.name, input: JSON.parse(tc.function.arguments || "{}") }))] };
     return { role: m.role, content: m.content ?? "" };
   });
-
   for (let i = 0; i < 8; i++) {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
       body: JSON.stringify({ model, max_tokens: 2000, system: SYSTEM_PROMPT, messages: msgs, tools: anthropicTools }),
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({})) as { error?: { message?: string } };
-      throw new Error(err?.error?.message ?? `HTTP ${res.status}`);
-    }
-    const data = await res.json() as { content: Array<{ type: string; text?: string; id?: string; name?: string; input?: Record<string, unknown> }>; stop_reason: string };
+    if (!res.ok) { const err = await res.json().catch(() => ({})) as { error?: { message?: string } }; throw new Error(err?.error?.message ?? `HTTP ${res.status}`); }
+    const data = await res.json() as { content: Array<{ type: string; text?: string; id?: string; name?: string; input?: Record<string, unknown> }>; stop_reason: string; usage?: { input_tokens: number; output_tokens: number } };
+    if (data.usage) { totalPrompt += data.usage.input_tokens; totalCompletion += data.usage.output_tokens; }
     const textParts = data.content.filter(c => c.type === "text").map(c => c.text ?? "");
     const toolUses = data.content.filter(c => c.type === "tool_use");
-
     msgs.push({ role: "assistant", content: data.content });
-
-    if (!toolUses.length) return textParts.join("\n");
-
+    if (!toolUses.length) {
+      const total = totalPrompt + totalCompletion;
+      return { reply: textParts.join("\n"), toolCalls: toolCallNames, usage: total ? { prompt: totalPrompt, completion: totalCompletion, total } : undefined, durationMs: Date.now() - startMs };
+    }
     const toolResults = [];
     for (const tu of toolUses) {
+      toolCallNames.push(tu.name ?? "");
       const result = await executeTool(tu.name ?? "", tu.input ?? {}, cb);
       toolResults.push({ type: "tool_result", tool_use_id: tu.id, content: result });
     }
     msgs.push({ role: "user", content: toolResults });
   }
-  return "Reached maximum tool call depth.";
+  const total = totalPrompt + totalCompletion;
+  return { reply: "Reached maximum tool call depth.", toolCalls: toolCallNames, usage: total ? { prompt: totalPrompt, completion: totalCompletion, total } : undefined, durationMs: Date.now() - startMs };
 }
 
 // ─── Gemini call ──────────────────────────────────────────────────────────────
@@ -357,62 +353,41 @@ async function callGemini(
   model: string,
   messages: ChatMessage[],
   cb: ToolCallbacks,
-): Promise<string> {
-  const functionDeclarations = TOOLS_OPENAI.map(t => ({
-    name: t.function.name,
-    description: t.function.description,
-    parameters: t.function.parameters,
-  }));
-
+): Promise<AIResult> {
+  const startMs = Date.now();
+  const toolCallNames: string[] = [];
+  let totalPrompt = 0, totalCompletion = 0, totalTokens = 0;
+  const functionDeclarations = TOOLS_OPENAI.map(t => ({ name: t.function.name, description: t.function.description, parameters: t.function.parameters }));
   const toGeminiParts = (msg: ChatMessage) => {
     if (msg.role === "tool") return { role: "user", parts: [{ functionResponse: { name: msg.name ?? "", response: { result: msg.content } } }] };
-    if (msg.tool_calls?.length) {
-      return {
-        role: "model",
-        parts: [
-          ...(msg.content ? [{ text: msg.content }] : []),
-          ...msg.tool_calls.map(tc => ({ functionCall: { name: tc.function.name, args: JSON.parse(tc.function.arguments || "{}") } })),
-        ],
-      };
-    }
+    if (msg.tool_calls?.length) return { role: "model", parts: [...(msg.content ? [{ text: msg.content }] : []), ...msg.tool_calls.map(tc => ({ functionCall: { name: tc.function.name, args: JSON.parse(tc.function.arguments || "{}") } }))] };
     return { role: msg.role === "assistant" ? "model" : "user", parts: [{ text: msg.content ?? "" }] };
   };
-
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const contents: any[] = messages.filter(m => m.role !== "system").map(toGeminiParts);
-
   for (let i = 0; i < 8; i++) {
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents,
-        tools: [{ functionDeclarations }],
-        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-        generationConfig: { maxOutputTokens: 2000 },
-      }),
+      body: JSON.stringify({ contents, tools: [{ functionDeclarations }], systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] }, generationConfig: { maxOutputTokens: 2000 } }),
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({})) as { error?: { message?: string } };
-      throw new Error(err?.error?.message ?? `HTTP ${res.status}`);
-    }
-    const data = await res.json() as { candidates: Array<{ content: { parts: Array<{ text?: string; functionCall?: { name: string; args: Record<string, unknown> } }> }; finishReason: string }> };
+    if (!res.ok) { const err = await res.json().catch(() => ({})) as { error?: { message?: string } }; throw new Error(err?.error?.message ?? `HTTP ${res.status}`); }
+    const data = await res.json() as { candidates: Array<{ content: { parts: Array<{ text?: string; functionCall?: { name: string; args: Record<string, unknown> } }> }; finishReason: string }>; usageMetadata?: { promptTokenCount: number; candidatesTokenCount: number; totalTokenCount: number } };
+    if (data.usageMetadata) { totalPrompt += data.usageMetadata.promptTokenCount; totalCompletion += data.usageMetadata.candidatesTokenCount; totalTokens += data.usageMetadata.totalTokenCount; }
     const parts = data.candidates[0].content.parts;
     const textParts = parts.filter(p => p.text).map(p => p.text ?? "");
     const fnCalls = parts.filter(p => p.functionCall);
-
     contents.push({ role: "model", parts });
-
-    if (!fnCalls.length) return textParts.join("\n");
-
+    if (!fnCalls.length) return { reply: textParts.join("\n"), toolCalls: toolCallNames, usage: totalTokens ? { prompt: totalPrompt, completion: totalCompletion, total: totalTokens } : undefined, durationMs: Date.now() - startMs };
     const fnResponses = [];
     for (const fc of fnCalls) {
+      toolCallNames.push(fc.functionCall!.name);
       const result = await executeTool(fc.functionCall!.name, fc.functionCall!.args, cb);
       fnResponses.push({ functionResponse: { name: fc.functionCall!.name, response: { result } } });
     }
     contents.push({ role: "user", parts: fnResponses });
   }
-  return "Reached maximum tool call depth.";
+  return { reply: "Reached maximum tool call depth.", toolCalls: toolCallNames, usage: totalTokens ? { prompt: totalPrompt, completion: totalCompletion, total: totalTokens } : undefined, durationMs: Date.now() - startMs };
 }
 
 // ─── Ollama call ──────────────────────────────────────────────────────────────
@@ -422,17 +397,16 @@ async function callOllama(
   model: string,
   messages: ChatMessage[],
   cb: ToolCallbacks,
-): Promise<string> {
+): Promise<AIResult> {
+  const startMs = Date.now();
+  const toolCallNames: string[] = [];
   const url = baseUrl.replace(/\/+$/, "");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const ollamaMsgs: any[] = messages.map(m => {
     if (m.role === "tool") return { role: "tool", content: m.content ?? "" };
-    if (m.tool_calls?.length) {
-      return { role: "assistant", content: m.content ?? "", tool_calls: m.tool_calls.map(tc => ({ id: tc.id, type: "function", function: { name: tc.function.name, arguments: tc.function.arguments } })) };
-    }
+    if (m.tool_calls?.length) return { role: "assistant", content: m.content ?? "", tool_calls: m.tool_calls.map(tc => ({ id: tc.id, type: "function", function: { name: tc.function.name, arguments: tc.function.arguments } })) };
     return { role: m.role, content: m.content ?? "" };
   });
-
   for (let i = 0; i < 8; i++) {
     const res = await fetch(`${url}/api/chat`, {
       method: "POST",
@@ -440,19 +414,20 @@ async function callOllama(
       body: JSON.stringify({ model, messages: ollamaMsgs, tools: TOOLS_OPENAI, stream: false }),
     });
     if (!res.ok) throw new Error(`Ollama HTTP ${res.status}`);
-    const data = await res.json() as { message: { role: string; content: string; tool_calls?: Array<{ function: { name: string; arguments: Record<string, unknown> | string } }> } };
+    const data = await res.json() as { message: { role: string; content: string; tool_calls?: Array<{ function: { name: string; arguments: Record<string, unknown> | string } }> }; prompt_eval_count?: number; eval_count?: number };
     const msg = data.message;
-
-    if (!msg.tool_calls?.length) return msg.content;
-
+    const prompt = data.prompt_eval_count ?? 0;
+    const completion = data.eval_count ?? 0;
+    if (!msg.tool_calls?.length) return { reply: msg.content, toolCalls: toolCallNames, usage: (prompt || completion) ? { prompt, completion, total: prompt + completion } : undefined, durationMs: Date.now() - startMs };
     ollamaMsgs.push({ role: "assistant", content: msg.content ?? "", tool_calls: msg.tool_calls });
     for (const tc of msg.tool_calls) {
+      toolCallNames.push(tc.function.name);
       const args = typeof tc.function.arguments === "string" ? JSON.parse(tc.function.arguments) : tc.function.arguments;
       const result = await executeTool(tc.function.name, args as Record<string, unknown>, cb);
       ollamaMsgs.push({ role: "tool", content: result });
     }
   }
-  return "Reached maximum tool call depth.";
+  return { reply: "Reached maximum tool call depth.", toolCalls: toolCallNames, durationMs: Date.now() - startMs };
 }
 
 // ─── Main call function ───────────────────────────────────────────────────────
@@ -461,7 +436,7 @@ export async function callAI(
   userMessage: string,
   history: ChatMessage[],
   cb: ToolCallbacks,
-): Promise<string> {
+): Promise<AIResult> {
   const active = getActiveProvider();
   if (!active) throw new Error("No AI provider selected. Open Settings → AI Settings and pick a provider.");
 
