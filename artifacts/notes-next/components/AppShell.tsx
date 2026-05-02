@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchNotes, createNote, updateNote, deleteNote, fetchTags, createTag, deleteTag, type Note, type Tag } from "@/lib/api";
 import { Sidebar } from "./Sidebar";
@@ -8,17 +8,26 @@ import { NoteList } from "./NoteList";
 import { Editor } from "./Editor";
 import { ShortcutsModal } from "./ShortcutsModal";
 import { SettingsModal } from "./SettingsModal";
+import { CommandPalette } from "./CommandPalette";
+import { ToastContainer, type ToastItem, type ToastType } from "./Toast";
+import { useTheme } from "@/lib/providers";
 
 export type View = "notes" | "starred" | "archived" | "trash" | "pinned" | "tag";
 
 export function AppShell() {
   const qc = useQueryClient();
+  const { dark, toggle: toggleTheme } = useTheme();
   const [view, setView] = useState<View>("notes");
   const [activeTagId, setActiveTagId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [focusMode, setFocusMode] = useState(false);
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const toastCounter = useRef(0);
 
   const { data: notes = [], isLoading: notesLoading } = useQuery({
     queryKey: ["notes"],
@@ -30,12 +39,22 @@ export function AppShell() {
     queryFn: fetchTags,
   });
 
+  function addToast(message: string, type: ToastType = "info") {
+    const id = `toast-${++toastCounter.current}`;
+    setToasts(prev => [...prev, { id, message, type }]);
+  }
+
+  function removeToast(id: string) {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }
+
   const createMutation = useMutation({
     mutationFn: createNote,
     onSuccess: (note) => {
       qc.invalidateQueries({ queryKey: ["notes"] });
       setSelectedId(note.id);
       setView("notes");
+      addToast("New note created", "success");
     },
   });
 
@@ -55,7 +74,7 @@ export function AppShell() {
 
   const createTagMutation = useMutation({
     mutationFn: ({ name, color }: { name: string; color?: string }) => createTag(name, color),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["tags"] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["tags"] }); addToast("Tag created", "success"); },
   });
 
   const deleteTagMutation = useMutation({
@@ -71,10 +90,15 @@ export function AppShell() {
     function onKeyDown(e: KeyboardEvent) {
       const meta = e.metaKey || e.ctrlKey;
       if (meta && e.key === "n") { e.preventDefault(); handleNewNote(); }
-      if (meta && e.key === "k") { e.preventDefault(); document.querySelector<HTMLInputElement>(".search-input")?.focus(); }
+      if (meta && e.key === "k") { e.preventDefault(); setShowCommandPalette(s => !s); }
       if (meta && e.key === "/") { e.preventDefault(); setShowShortcuts(s => !s); }
       if (meta && e.key === ",") { e.preventDefault(); setShowSettings(s => !s); }
-      if (e.key === "Escape") { setShowShortcuts(false); setShowSettings(false); }
+      if (meta && e.shiftKey && e.key === "F") { e.preventDefault(); setFocusMode(f => !f); }
+      if (meta && e.key === "\\") { e.preventDefault(); setSidebarCollapsed(c => !c); }
+      if (e.key === "Escape") {
+        setShowShortcuts(false); setShowSettings(false);
+        setShowCommandPalette(false); setFocusMode(false);
+      }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
@@ -124,31 +148,54 @@ export function AppShell() {
   };
 
   return (
-    <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
-      <Sidebar
-        view={view} activeTagId={activeTagId} tags={tags} counts={counts}
-        onViewChange={(v) => { setView(v); setSelectedId(null); setActiveTagId(null); }}
-        onTagClick={(id) => { setView("tag"); setActiveTagId(id); setSelectedId(null); }}
-        onCreateTag={(name) => createTagMutation.mutate({ name })}
-        onDeleteTag={(id) => deleteTagMutation.mutate(id)}
-        onShowShortcuts={() => setShowShortcuts(true)}
-        onOpenSettings={() => setShowSettings(true)}
-      />
-      <NoteList
-        notes={sortedNotes} view={view} search={search} selectedId={selectedId} loading={notesLoading}
-        onSelect={(id) => setSelectedId(id)} onSearch={setSearch} onNew={handleNewNote}
-        onToggleStar={handleToggleStar} onTogglePin={handleTogglePin}
-        onArchive={handleToggleArchive} onTrash={handleTrash}
-        onRestore={handleRestoreFromTrash} onDeleteForever={handleDeleteForever}
-      />
-      <Editor
-        note={selectedNote} onChange={handleNoteChange}
-        onToggleStar={handleToggleStar} onTogglePin={handleTogglePin}
-        onTrash={handleTrash} onArchive={handleToggleArchive}
-        onOpenSettings={() => setShowSettings(true)}
-      />
+    <>
+      <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
+        <Sidebar
+          view={view} activeTagId={activeTagId} tags={tags} counts={counts}
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed(c => !c)}
+          onViewChange={(v) => { setView(v); setSelectedId(null); setActiveTagId(null); }}
+          onTagClick={(id) => { setView("tag"); setActiveTagId(id); setSelectedId(null); }}
+          onCreateTag={(name) => createTagMutation.mutate({ name })}
+          onDeleteTag={(id) => deleteTagMutation.mutate(id)}
+          onShowShortcuts={() => setShowShortcuts(true)}
+          onOpenSettings={() => setShowSettings(true)}
+        />
+        <NoteList
+          notes={sortedNotes} view={view} search={search} selectedId={selectedId} loading={notesLoading}
+          onSelect={(id) => setSelectedId(id)} onSearch={setSearch} onNew={handleNewNote}
+          onToggleStar={handleToggleStar} onTogglePin={handleTogglePin}
+          onArchive={handleToggleArchive} onTrash={handleTrash}
+          onRestore={handleRestoreFromTrash} onDeleteForever={handleDeleteForever}
+          onToast={addToast}
+        />
+        <Editor
+          note={selectedNote} onChange={handleNoteChange}
+          onToggleStar={handleToggleStar} onTogglePin={handleTogglePin}
+          onTrash={handleTrash} onArchive={handleToggleArchive}
+          onOpenSettings={() => setShowSettings(true)}
+          onToast={addToast}
+          focusMode={focusMode}
+          onExitFocus={() => setFocusMode(false)}
+        />
+      </div>
+
       {showShortcuts && <ShortcutsModal onClose={() => setShowShortcuts(false)} />}
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
-    </div>
+      {showCommandPalette && (
+        <CommandPalette
+          notes={notes}
+          dark={dark}
+          onClose={() => setShowCommandPalette(false)}
+          onSelectNote={(id) => { setSelectedId(id); setView("notes"); }}
+          onNewNote={handleNewNote}
+          onOpenSettings={() => setShowSettings(true)}
+          onToggleTheme={toggleTheme}
+          onToggleFocus={() => setFocusMode(f => !f)}
+          onShowShortcuts={() => setShowShortcuts(true)}
+        />
+      )}
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
+    </>
   );
 }
