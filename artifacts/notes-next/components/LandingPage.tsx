@@ -3,12 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
-  FileText, Star, Tag, Search, Moon, Download, Pin, Eye, Keyboard,
-  Zap, Lock, Cloud, ArrowRight, CheckCircle, Sparkles, BookOpen,
-  BarChart2, ChevronDown, Cpu, Wand2, Settings, LogIn, Globe,
-  Shield, Brain, PenLine, Hash, Archive, Layers, Timer,
-  Github, Command, Languages, AlignLeft, Package, ExternalLink,
-  Heart, Infinity, DollarSign, CreditCard, Ban, Gift,
+  Star, Tag, Moon, Download, Eye, Keyboard, Search,
+  Zap, Cloud, ArrowRight, CheckCircle, Sparkles, BookOpen,
+  BarChart2, ChevronDown, Cpu, LogIn,
+  Shield, Brain, PenLine, Layers, Timer,
+  Github, Command, Package, ExternalLink,
+  Heart, Infinity as InfinityIcon,
 } from "lucide-react";
 
 const APP_LINK  = "/notes";
@@ -206,8 +206,9 @@ function ParticleCanvas() {
       animId=requestAnimationFrame(draw);
     };
     resize();init();draw();
-    window.addEventListener("resize",()=>{resize();init();});
-    return()=>cancelAnimationFrame(animId);
+    const onResize=()=>{resize();init();};
+    window.addEventListener("resize",onResize);
+    return()=>{cancelAnimationFrame(animId);window.removeEventListener("resize",onResize);};
   },[]);
   return <canvas ref={canvasRef} style={{position:"absolute",inset:0,zIndex:0,pointerEvents:"none"}}/>;
 }
@@ -750,7 +751,7 @@ export function LandingPage() {
           <div style={{padding:"28px 36px",borderRadius:20,background:"linear-gradient(135deg,rgba(52,211,153,.06),rgba(99,102,241,.06))",border:"1px solid rgba(52,211,153,.15)",display:"flex",alignItems:"center",gap:20,flexWrap:"wrap",justifyContent:"center",animation:"breathe 5s ease-in-out infinite"}}>
             <div style={{display:"flex",alignItems:"center",gap:10}}>
               <div style={{position:"relative",width:40,height:40}}>
-                <Infinity size={40} color="#34d399" style={{animation:"infSpin 8s linear infinite"}}/>
+                <InfinityIcon size={40} color="#34d399" style={{animation:"infSpin 8s linear infinite"}}/>
                 <div style={{position:"absolute",inset:-6,borderRadius:"50%",border:"1px solid rgba(52,211,153,.2)",animation:"freePing 3s ease-out infinite"}}/>
               </div>
               <div>
