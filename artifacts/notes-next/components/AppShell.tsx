@@ -20,7 +20,8 @@ export type View = "notes" | "starred" | "archived" | "trash" | "pinned" | "tag"
 export function AppShell() {
   const qc = useQueryClient();
   const { dark, toggle: toggleTheme } = useTheme();
-  const [loggedIn, setLoggedIn] = useState(false);
+  // null = checking auth (avoids flash of login screen on refresh)
+  const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
 
   useEffect(() => {
     setLoggedIn(isLoggedIn());
@@ -41,13 +42,13 @@ export function AppShell() {
   const { data: notes = [], isLoading: notesLoading } = useQuery({
     queryKey: ["notes"],
     queryFn: fetchNotes,
-    enabled: loggedIn,
+    enabled: loggedIn === true,
   });
 
   const { data: tags = [] } = useQuery({
     queryKey: ["tags"],
     queryFn: fetchTags,
-    enabled: loggedIn,
+    enabled: loggedIn === true,
   });
 
   function addToast(message: string, type: ToastType = "info") {
@@ -158,7 +159,17 @@ export function AppShell() {
     pinned: notes.filter((n) => n.pinned && !n.trashed).length,
   };
 
-  if (!loggedIn) {
+  // Still checking localStorage — show a minimal spinner to avoid flash of login screen
+  if (loggedIn === null) {
+    return (
+      <div style={{ display: "flex", height: "100vh", alignItems: "center", justifyContent: "center", background: "var(--bg-app)" }}>
+        <div style={{ width: 32, height: 32, border: "3px solid rgba(99,102,241,0.2)", borderTopColor: "#6366f1", borderRadius: "50%", animation: "appShellSpin 0.7s linear infinite" }} />
+        <style>{`@keyframes appShellSpin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
+  if (loggedIn === false) {
     return (
       <div style={{ display: "flex", height: "100vh", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 24, background: "var(--bg-app)", color: "var(--text-primary)" }}>
         <div style={{ width: 56, height: 56, borderRadius: 16, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 0 40px rgba(99,102,241,0.4)" }}>
@@ -176,7 +187,7 @@ export function AppShell() {
             Create Account
           </Link>
         </div>
-        <p style={{ fontSize: 12, color: "#1e293b", marginTop: 8 }}>Your notes sync securely across all devices</p>
+        <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 8 }}>Your notes sync securely across all devices</p>
       </div>
     );
   }

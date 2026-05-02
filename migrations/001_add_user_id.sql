@@ -1,0 +1,4 @@
+ALTER TABLE notes ADD COLUMN IF NOT EXISTS user_id TEXT DEFAULT NULL;
+ALTER TABLE tags ADD COLUMN IF NOT EXISTS user_id TEXT DEFAULT NULL;
+CREATE INDEX IF NOT EXISTS notes_user_id_idx ON notes(user_id);
+CREATE INDEX IF NOT EXISTS tags_user_id_idx ON tags(user_id);

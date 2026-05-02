@@ -54,7 +54,9 @@ export function AuthPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [focused, setFocused] = useState<string | null>(null);
@@ -63,8 +65,20 @@ export function AuthPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
     setError("");
+
+    if (!isLogin) {
+      if (password.length < 8) {
+        setError("Password must be at least 8 characters");
+        return;
+      }
+      if (password !== confirmPassword) {
+        setError("Passwords do not match");
+        return;
+      }
+    }
+
+    setLoading(true);
     try {
       const result = isLogin
         ? await apiLogin(email, password)
@@ -168,7 +182,7 @@ export function AuthPage() {
             {/* Mode tabs */}
             <div style={{ display: "flex", background: isLogin ? "rgba(99,102,241,0.06)" : "rgba(6,182,212,0.06)", borderRadius: 13, padding: 4, marginBottom: 30, border: `1px solid ${borderColor}` }}>
               {(["login", "register"] as const).map(m => (
-                <button key={m} onClick={() => { setMode(m); setError(""); }}
+                <button key={m} onClick={() => { setMode(m); setError(""); setConfirmPassword(""); setPassword(""); }}
                   style={{ flex: 1, padding: "10px", borderRadius: 10, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 700, transition: "all 0.3s cubic-bezier(0.16,1,0.3,1)", background: mode === m ? `linear-gradient(135deg,${accent},${accentEnd})` : "transparent", color: mode === m ? "white" : labelColor, boxShadow: mode === m ? `0 4px 16px ${glowColor}` : "none", letterSpacing: 0.2 }}>
                   {m === "login" ? "Sign In" : "Create Account"}
                 </button>
@@ -221,12 +235,12 @@ export function AuthPage() {
                 </div>
               </div>
 
-              <div style={{ marginBottom: 28 }}>
+              <div style={{ marginBottom: isLogin ? 28 : 16 }}>
                 <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: labelColor, marginBottom: 7, letterSpacing: 0.8, textTransform: "uppercase" }}>Password</label>
                 <div style={{ position: "relative" }}>
                   <Lock size={15} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: focused === "pass" ? accent : labelColor, transition: "color 0.2s" }} />
                   <input type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} required
-                    placeholder={isLogin ? "••••••••••" : "Min. 6 characters"}
+                    placeholder={isLogin ? "••••••••••" : "Min. 8 characters"}
                     style={{ ...inputStyle("pass"), paddingRight: 46 }}
                     onFocus={() => setFocused("pass")} onBlur={() => setFocused(null)} />
                   <button type="button" onClick={() => setShowPassword(s => !s)}
@@ -236,7 +250,52 @@ export function AuthPage() {
                     {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 </div>
+                {!isLogin && password.length > 0 && (
+                  <div style={{ marginTop: 8, display: "flex", gap: 4 }}>
+                    {[...Array(4)].map((_, i) => {
+                      const strength = password.length >= 12 ? 4 : password.length >= 10 ? 3 : password.length >= 8 ? 2 : 1;
+                      return (
+                        <div key={i} style={{ flex: 1, height: 3, borderRadius: 2, background: i < strength ? (strength <= 1 ? "#ef4444" : strength === 2 ? "#f59e0b" : strength === 3 ? "#06b6d4" : "#10b981") : "rgba(255,255,255,0.1)", transition: "background 0.3s" }} />
+                      );
+                    })}
+                    <span style={{ fontSize: 10, color: password.length >= 12 ? "#10b981" : password.length >= 10 ? "#06b6d4" : password.length >= 8 ? "#f59e0b" : "#ef4444", marginLeft: 6, fontWeight: 600, whiteSpace: "nowrap" }}>
+                      {password.length >= 12 ? "Strong" : password.length >= 10 ? "Good" : password.length >= 8 ? "Fair" : "Weak"}
+                    </span>
+                  </div>
+                )}
               </div>
+
+              {!isLogin && (
+                <div style={{ marginBottom: 28 }}>
+                  <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: labelColor, marginBottom: 7, letterSpacing: 0.8, textTransform: "uppercase" }}>Confirm Password</label>
+                  <div style={{ position: "relative" }}>
+                    <Lock size={15} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: focused === "confirm" ? accent : labelColor, transition: "color 0.2s" }} />
+                    <input type={showConfirm ? "text" : "password"} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required
+                      placeholder="Re-enter your password"
+                      style={{
+                        ...inputStyle("confirm"), paddingRight: 46,
+                        borderColor: confirmPassword.length > 0
+                          ? (confirmPassword === password ? "#10b981" : "#ef4444")
+                          : (focused === "confirm" ? accent : undefined),
+                        boxShadow: confirmPassword.length > 0
+                          ? (confirmPassword === password ? "0 0 0 3px rgba(16,185,129,0.15)" : "0 0 0 3px rgba(239,68,68,0.15)")
+                          : (focused === "confirm" ? inputFocusShadow : undefined),
+                      }}
+                      onFocus={() => setFocused("confirm")} onBlur={() => setFocused(null)} />
+                    <button type="button" onClick={() => setShowConfirm(s => !s)}
+                      style={{ position: "absolute", right: 13, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: labelColor, display: "flex", padding: 5, borderRadius: 7, transition: "all 0.2s" }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = accent; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = labelColor; }}>
+                      {showConfirm ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
+                    {confirmPassword.length > 0 && (
+                      <div style={{ position: "absolute", right: 44, top: "50%", transform: "translateY(-50%)", fontSize: 13 }}>
+                        {confirmPassword === password ? "✓" : "✗"}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <button type="submit" disabled={loading}
                 className="submit-btn"
@@ -257,7 +316,7 @@ export function AuthPage() {
 
             <p style={{ textAlign: "center", fontSize: 13, color: textMuted, marginTop: 22 }}>
               {isLogin ? "No account? " : "Already registered? "}
-              <button onClick={() => { setMode(isLogin ? "register" : "login"); setError(""); }}
+              <button onClick={() => { setMode(isLogin ? "register" : "login"); setError(""); setConfirmPassword(""); setPassword(""); }}
                 style={{ background: "none", border: "none", cursor: "pointer", color: accent, fontWeight: 700, fontSize: 13, padding: 0, textDecoration: "underline", textUnderlineOffset: 3, transition: "opacity 0.2s" }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = "0.7"; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}>
