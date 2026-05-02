@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchNotes, createNote, updateNote, deleteNote, fetchTags, createTag, deleteTag, type Note, type Tag } from "@/lib/api";
-import { isLoggedIn } from "@/lib/auth";
+import { isLoggedIn, getUser } from "@/lib/auth";
 import { Sidebar } from "./Sidebar";
 import { NoteList } from "./NoteList";
 import { Editor } from "./Editor";
@@ -13,19 +12,19 @@ import { SettingsModal } from "./SettingsModal";
 import { CommandPalette } from "./CommandPalette";
 import { ToastContainer, type ToastItem, type ToastType } from "./Toast";
 import { useTheme } from "@/lib/providers";
+import Link from "next/link";
 
 export type View = "notes" | "starred" | "archived" | "trash" | "pinned" | "tag";
 
 export function AppShell() {
-  const router = useRouter();
   const qc = useQueryClient();
   const { dark, toggle: toggleTheme } = useTheme();
+  const [loggedIn, setLoggedIn] = useState(false);
 
   useEffect(() => {
-    if (!isLoggedIn()) {
-      router.replace("/auth");
-    }
-  }, [router]);
+    setLoggedIn(isLoggedIn());
+  }, []);
+
   const [view, setView] = useState<View>("notes");
   const [activeTagId, setActiveTagId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -41,11 +40,13 @@ export function AppShell() {
   const { data: notes = [], isLoading: notesLoading } = useQuery({
     queryKey: ["notes"],
     queryFn: fetchNotes,
+    enabled: loggedIn,
   });
 
   const { data: tags = [] } = useQuery({
     queryKey: ["tags"],
     queryFn: fetchTags,
+    enabled: loggedIn,
   });
 
   function addToast(message: string, type: ToastType = "info") {
@@ -155,6 +156,29 @@ export function AppShell() {
     trash: notes.filter((n) => n.trashed).length,
     pinned: notes.filter((n) => n.pinned && !n.trashed).length,
   };
+
+  if (!loggedIn) {
+    return (
+      <div style={{ display: "flex", height: "100vh", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 24, background: "var(--bg-app)", color: "var(--text-primary)" }}>
+        <div style={{ width: 56, height: 56, borderRadius: 16, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 0 40px rgba(99,102,241,0.4)" }}>
+          <svg width="26" height="26" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        </div>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 8 }}>Smart Ins-Note</div>
+          <div style={{ fontSize: 14, color: "var(--text-muted)", maxWidth: 320 }}>Sign in to access your notes and sync across all your devices.</div>
+        </div>
+        <div style={{ display: "flex", gap: 12 }}>
+          <Link href="/auth" style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "white", padding: "11px 28px", borderRadius: 10, fontWeight: 600, fontSize: 14, textDecoration: "none", boxShadow: "0 4px 20px rgba(99,102,241,0.35)" }}>
+            Sign In
+          </Link>
+          <Link href="/auth" style={{ background: "var(--bg-hover)", color: "var(--text-primary)", padding: "11px 28px", borderRadius: 10, fontWeight: 600, fontSize: 14, textDecoration: "none", border: "1px solid var(--border)" }}>
+            Create Account
+          </Link>
+        </div>
+        <Link href="/" style={{ fontSize: 13, color: "var(--text-muted)", textDecoration: "none", marginTop: 8 }}>← Back to Home</Link>
+      </div>
+    );
+  }
 
   return (
     <>
