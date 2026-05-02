@@ -74,7 +74,19 @@ html, body {
   overflow: hidden;
   flex-shrink: 0;
 }
-.panel-editor { background: var(--bg-editor); }
+.panel-editor { background: var(--bg-editor); flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+
+/* ═══════════════════════════════════════
+   SIDEBAR COLLAPSE BUTTON
+═══════════════════════════════════════ */
+.sidebar-collapse-btn {
+  background: none; border: none; cursor: pointer;
+  padding: 6px; border-radius: 7px;
+  color: var(--text-muted);
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.12s, color 0.12s;
+}
+.sidebar-collapse-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
 
 /* ═══════════════════════════════════════
    NAV

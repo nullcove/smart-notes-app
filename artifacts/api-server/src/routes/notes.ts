@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { CreateNoteBody, DeleteNoteParams, UpdateNoteParams } from "@workspace/api-zod";
 import { z } from "zod";
+import { requireAuth } from "../middleware/auth";
 
 const router: IRouter = Router();
 
@@ -8,9 +9,7 @@ const INSFORGE_API_KEY = process.env.INSFORGE_API_KEY;
 const INSFORGE_API_BASE_URL = process.env.INSFORGE_API_BASE_URL;
 
 if (!INSFORGE_API_KEY || !INSFORGE_API_BASE_URL) {
-  throw new Error(
-    "INSFORGE_API_KEY and INSFORGE_API_BASE_URL environment variables are required."
-  );
+  throw new Error("INSFORGE_API_KEY and INSFORGE_API_BASE_URL environment variables are required.");
 }
 
 const baseHeaders = {
@@ -36,20 +35,19 @@ function mapNote(n: Record<string, unknown>) {
   };
 }
 
-router.get("/notes", async (req, res) => {
+router.get("/notes", requireAuth, async (req, res) => {
   try {
+    const userId = req.user!.id;
     const response = await fetch(
-      `${notesUrl()}?order=updated_at.desc`,
+      `${notesUrl()}?user_id=eq.${encodeURIComponent(userId)}&order=updated_at.desc`,
       { headers: baseHeaders }
     );
     const raw = await response.json() as Array<Record<string, unknown>>;
-
     if (!response.ok) {
       req.log.error({ status: response.status, raw }, "Insforge GET notes failed");
       res.status(500).json({ error: "Failed to fetch notes" });
       return;
     }
-
     res.json((raw ?? []).map(mapNote));
   } catch (err) {
     req.log.error({ err }, "Error fetching notes");
@@ -57,33 +55,34 @@ router.get("/notes", async (req, res) => {
   }
 });
 
-router.post("/notes", async (req, res) => {
+router.post("/notes", requireAuth, async (req, res) => {
   try {
     const body = CreateNoteBody.parse(req.body);
-
+    const userId = req.user!.id;
     const response = await fetch(notesUrl(), {
       method: "POST",
-      headers: {
-        ...baseHeaders,
-        "Prefer": "return=representation",
-      },
-      body: JSON.stringify([{ title: body.title, content: body.content, starred: false, archived: false, trashed: false }]),
+      headers: { ...baseHeaders, "Prefer": "return=representation" },
+      body: JSON.stringify([{
+        title: body.title,
+        content: body.content,
+        starred: false,
+        archived: false,
+        trashed: false,
+        pinned: false,
+        user_id: userId,
+      }]),
     });
-
     const raw = await response.json() as Array<Record<string, unknown>>;
-
     if (!response.ok) {
       req.log.error({ status: response.status, raw }, "Insforge POST notes failed");
       res.status(500).json({ error: "Failed to create note" });
       return;
     }
-
     const created = raw?.[0];
     if (!created) {
       res.status(500).json({ error: "Note creation returned no data" });
       return;
     }
-
     res.status(201).json(mapNote(created));
   } catch (err) {
     req.log.error({ err }, "Error creating note");
@@ -100,34 +99,30 @@ const UpdateNoteBody = z.object({
   pinned: z.boolean().optional(),
 });
 
-router.patch("/notes/:id", async (req, res) => {
+router.patch("/notes/:id", requireAuth, async (req, res) => {
   try {
     const { id } = UpdateNoteParams.parse(req.params);
     const body = UpdateNoteBody.parse(req.body);
-
-    const response = await fetch(`${notesUrl()}?id=eq.${encodeURIComponent(id)}`, {
-      method: "PATCH",
-      headers: {
-        ...baseHeaders,
-        "Prefer": "return=representation",
-      },
-      body: JSON.stringify(body),
-    });
-
+    const userId = req.user!.id;
+    const response = await fetch(
+      `${notesUrl()}?id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(userId)}`,
+      {
+        method: "PATCH",
+        headers: { ...baseHeaders, "Prefer": "return=representation" },
+        body: JSON.stringify(body),
+      }
+    );
     const raw = await response.json() as Array<Record<string, unknown>>;
-
     if (!response.ok) {
       req.log.error({ status: response.status, raw }, "Insforge PATCH note failed");
       res.status(500).json({ error: "Failed to update note" });
       return;
     }
-
     const updated = raw?.[0];
     if (!updated) {
       res.status(404).json({ error: "Note not found" });
       return;
     }
-
     res.json(mapNote(updated));
   } catch (err) {
     req.log.error({ err }, "Error updating note");
@@ -135,22 +130,20 @@ router.patch("/notes/:id", async (req, res) => {
   }
 });
 
-router.delete("/notes/:id", async (req, res) => {
+router.delete("/notes/:id", requireAuth, async (req, res) => {
   try {
     const { id } = DeleteNoteParams.parse(req.params);
-
-    const response = await fetch(`${notesUrl()}?id=eq.${encodeURIComponent(id)}`, {
-      method: "DELETE",
-      headers: baseHeaders,
-    });
-
+    const userId = req.user!.id;
+    const response = await fetch(
+      `${notesUrl()}?id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(userId)}`,
+      { method: "DELETE", headers: baseHeaders }
+    );
     if (!response.ok) {
       const raw = await response.text();
       req.log.error({ status: response.status, raw }, "Insforge DELETE note failed");
       res.status(500).json({ error: "Failed to delete note" });
       return;
     }
-
     res.json({ success: true, id });
   } catch (err) {
     req.log.error({ err }, "Error deleting note");

@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchNotes, createNote, updateNote, deleteNote, fetchTags, createTag, deleteTag, type Note, type Tag } from "@/lib/api";
+import { isLoggedIn } from "@/lib/auth";
 import { Sidebar } from "./Sidebar";
 import { NoteList } from "./NoteList";
 import { Editor } from "./Editor";
@@ -15,8 +17,15 @@ import { useTheme } from "@/lib/providers";
 export type View = "notes" | "starred" | "archived" | "trash" | "pinned" | "tag";
 
 export function AppShell() {
+  const router = useRouter();
   const qc = useQueryClient();
   const { dark, toggle: toggleTheme } = useTheme();
+
+  useEffect(() => {
+    if (!isLoggedIn()) {
+      router.replace("/auth");
+    }
+  }, [router]);
   const [view, setView] = useState<View>("notes");
   const [activeTagId, setActiveTagId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
