@@ -7,6 +7,7 @@ export interface Note {
   starred?: boolean;
   archived?: boolean;
   trashed?: boolean;
+  pinned?: boolean;
 }
 
 export interface Tag {
@@ -27,6 +28,7 @@ export interface UpdateNoteInput {
   starred?: boolean;
   archived?: boolean;
   trashed?: boolean;
+  pinned?: boolean;
 }
 
 const API = "/api";

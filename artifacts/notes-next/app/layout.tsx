@@ -3,8 +3,8 @@ import "./globals.css";
 import { Providers } from "@/lib/providers";
 
 export const metadata: Metadata = {
-  title: "Notes",
-  description: "A Standard Notes-style note-taking app",
+  title: "InsNote Smart — Your Ideas, Beautifully Organized",
+  description: "InsNote Smart is a powerful, privacy-first note-taking app with markdown, tags, search, and seamless sync.",
 };
 
 export default function RootLayout({
