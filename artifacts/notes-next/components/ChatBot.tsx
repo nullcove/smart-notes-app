@@ -2,10 +2,10 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import {
-  X, Send, Bot, User, Sparkles, RotateCcw,
+  X, Send, User, Sparkles, RotateCcw,
   FileText, Plus, Edit3, Trash2, Star, Search,
   Zap, Hash, Clock, Wrench, ChevronRight, Brain,
-  Cpu, Atom, Flame, Wand2,
+  Cpu, Atom, Wand2,
 } from "lucide-react";
 import { callAI, type ChatMessage, type NoteRef, type ToolCallbacks, getActiveProvider } from "@/lib/ai-engine";
 
@@ -42,17 +42,21 @@ interface Particle {
   anim: string;
 }
 
-function makeParticles(n = 18): Particle[] {
+// Deterministic pseudo-random: no Math.random() — avoids SSR/client hydration mismatch
+function det(i: number, salt: number) {
+  return ((i * 2654435761 + salt * 40503) >>> 0) / 0xffffffff;
+}
+function makeParticles(n = 22): Particle[] {
   const colors = ["#6366f1", "#8b5cf6", "#e879f9", "#60a5fa", "#34d399", "#fbbf24", "#f472b6", "#a78bfa"];
   const anims = ["f01", "f06", "f07", "f08", "f13", "f17", "au01", "au03"];
   return Array.from({ length: n }, (_, i) => ({
     id: i,
-    x: Math.random() * 100,
-    y: Math.random() * 100,
-    size: 2 + Math.random() * 4,
+    x: det(i, 1) * 100,
+    y: det(i, 2) * 100,
+    size: 2 + det(i, 3) * 4,
     color: colors[i % colors.length],
-    delay: Math.random() * 4,
-    dur: 4 + Math.random() * 6,
+    delay: det(i, 4) * 4,
+    dur: 4 + det(i, 5) * 6,
     anim: anims[i % anims.length],
   }));
 }
