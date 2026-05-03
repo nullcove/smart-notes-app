@@ -5,9 +5,13 @@ import {
   X, Send, User, Sparkles, RotateCcw,
   FileText, Plus, Edit3, Trash2, Star, Search,
   Zap, Hash, Clock, Wrench, ChevronRight, Brain,
-  Cpu, Atom, Wand2,
+  Cpu, Atom, Wand2, Copy, Check, Mic, MicOff, Download,
+  BarChart2, Files, Key, Globe,
 } from "lucide-react";
-import { callAI, type ChatMessage, type NoteRef, type ToolCallbacks, getActiveProvider } from "@/lib/ai-engine";
+import { type NoteRef, type ToolCallbacks, executeTool } from "@/lib/ai-engine";
+import { aiChat, getAiKeys, type AiMessage, type AiToolCall, PROVIDER_LABELS, PROVIDER_COLORS } from "@/lib/ai-api";
+import { AIKeyManager } from "@/components/AIKeyManager";
+import { AIErrorPopup, type AiError } from "@/components/AIErrorPopup";
 
 /* ─────────────────────────── TYPES ─────────────────────────── */
 interface DisplayMessage {
@@ -42,7 +46,6 @@ interface Particle {
   anim: string;
 }
 
-// Deterministic pseudo-random: no Math.random() — avoids SSR/client hydration mismatch
 function det(i: number, salt: number) {
   return ((i * 2654435761 + salt * 40503) >>> 0) / 0xffffffff;
 }
@@ -81,13 +84,17 @@ function ActionIcon({ type }: { type?: string }) {
   if (type === "update_note" || type === "open_note") return <Edit3 size={11} />;
   if (type === "list_notes" || type === "search_notes") return <Search size={11} />;
   if (type === "star_note") return <Star size={11} />;
+  if (type === "get_note_stats") return <BarChart2 size={11} />;
+  if (type === "duplicate_note") return <Files size={11} />;
+  if (type === "bulk_update_notes") return <Edit3 size={11} />;
   return <Sparkles size={11} />;
 }
 
 const ACTION_COLORS: Record<string, string> = {
   create_note: "#34d399", delete_note: "#f87171", update_note: "#60a5fa",
   open_note: "#a78bfa", list_notes: "#e879f9", search_notes: "#fbbf24",
-  star_note: "#fbbf24",
+  star_note: "#fbbf24", get_note_stats: "#38bdf8", duplicate_note: "#fb923c",
+  bulk_update_notes: "#60a5fa",
 };
 
 /* ─────────────────────────── TOOL CHIP ─────────────────────── */
@@ -126,7 +133,6 @@ function WaveLoader() {
 function OrbitalBot({ size = 42 }: { size?: number }) {
   return (
     <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
-      {/* Outer ring */}
       <div style={{
         position: "absolute", inset: -6, borderRadius: "50%",
         border: "1.5px solid transparent",
@@ -134,13 +140,11 @@ function OrbitalBot({ size = 42 }: { size?: number }) {
         backgroundOrigin: "border-box", backgroundClip: "padding-box, border-box",
         animation: "ro01 3s linear infinite",
       }} />
-      {/* Middle ring */}
       <div style={{
         position: "absolute", inset: -2, borderRadius: "50%",
         border: "1px dashed rgba(139,92,246,0.4)",
         animation: "ro02 5s linear infinite",
       }} />
-      {/* Core */}
       <div style={{
         width: size, height: size, borderRadius: "50%",
         background: "linear-gradient(135deg,#4f46e5,#7c3aed,#9333ea)",
@@ -150,7 +154,6 @@ function OrbitalBot({ size = 42 }: { size?: number }) {
       }}>
         <Brain size={size * 0.42} color="white" style={{ filter: "drop-shadow(0 0 4px rgba(255,255,255,0.8))" }} />
       </div>
-      {/* Orbital dot */}
       <div style={{
         position: "absolute", top: -4, left: "50%", marginLeft: -4,
         width: 8, height: 8, borderRadius: "50%",
@@ -169,35 +172,50 @@ export function ChatBot({ notes, onCreateNote, onUpdateNote, onDeleteNote, onOpe
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
-  const [history, setHistory] = useState<ChatMessage[]>([]);
+  const [history, setHistory] = useState<AiMessage[]>([]);
   const [totalTokens, setTotalTokens] = useState(0);
   const [expandedDetails, setExpandedDetails] = useState<Set<string>>(new Set());
   const [sparkles, setSparkles] = useState<{ id: number; x: number; y: number }[]>([]);
   const [sendAnim, setSendAnim] = useState(false);
   const [fabHover, setFabHover] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [listening, setListening] = useState(false);
+  const [hasKeys, setHasKeys] = useState<boolean | null>(null);
+  const [currentModel, setCurrentModel] = useState<string>("");
+  const [currentProvider, setCurrentProvider] = useState<string>("");
+  const [aiError, setAiError] = useState<AiError | null>(null);
+  const [showKeyManager, setShowKeyManager] = useState(false);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const notesRef = useRef<NoteRef[]>(notes);
   const sendBtnRef = useRef<HTMLButtonElement>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
   notesRef.current = notes;
 
-  const [active, setActive] = useState(() => getActiveProvider());
-
   useEffect(() => {
-    const refresh = () => setActive(getActiveProvider());
-    window.addEventListener("storage", refresh);
-    window.addEventListener("ai-provider-changed", refresh);
-    return () => { window.removeEventListener("storage", refresh); window.removeEventListener("ai-provider-changed", refresh); };
+    getAiKeys().then(k => setHasKeys(k.length > 0));
   }, []);
 
   useEffect(() => {
-    if (open) { setActive(getActiveProvider()); setTimeout(() => inputRef.current?.focus(), 120); }
+    if (open) {
+      getAiKeys().then(k => setHasKeys(k.length > 0));
+      setTimeout(() => inputRef.current?.focus(), 120);
+    }
   }, [open]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
+
+  /* Stop voice recognition when chat closes */
+  useEffect(() => {
+    if (!open && listening) {
+      recognitionRef.current?.stop();
+      setListening(false);
+    }
+  }, [open, listening]);
 
   function addDisplay(msg: Omit<DisplayMessage, "id">) {
     const id = Math.random().toString(36).slice(2);
@@ -220,6 +238,63 @@ export function ChatBot({ notes, onCreateNote, onUpdateNote, onDeleteNote, onOpe
     const newS = Array.from({ length: 8 }, (_, i) => ({ id: Date.now() + i, x: cx + (Math.random() - 0.5) * 60, y: cy + (Math.random() - 0.5) * 60 }));
     setSparkles(newS);
     setTimeout(() => setSparkles([]), 700);
+  }
+
+  /* ── Copy message to clipboard ── */
+  function copyMessage(id: string, content: string) {
+    navigator.clipboard.writeText(content).then(() => {
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    });
+  }
+
+  /* ── Export chat as text file ── */
+  function exportChat() {
+    if (messages.length === 0) return;
+    const lines: string[] = [`Smart Ins-Note — Chat Export`, `Date: ${new Date().toLocaleString()}`, `Model: ${currentProvider ? `${currentProvider} / ${currentModel}` : "AI Brain"}`, `Tokens used: ${totalTokens}`, "", "─".repeat(60), ""];
+    for (const m of messages) {
+      if (m.role === "user") lines.push(`[You]\n${m.content}`, "");
+      else if (m.role === "assistant") lines.push(`[AI Brain]\n${m.content}`, "");
+      else if (m.role === "action") lines.push(`  ⚡ ${m.content}`, "");
+    }
+    const blob = new Blob([lines.join("\n")], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `chat-${Date.now()}.txt`; a.click();
+    URL.revokeObjectURL(url);
+    onToast("Chat exported!", "success");
+  }
+
+  /* ── Voice input (Web Speech API) ── */
+  function toggleVoice() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const w = window as any;
+    const SpeechRecognition = w.SpeechRecognition || w.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      onToast("Voice input not supported in this browser", "error");
+      return;
+    }
+    if (listening) {
+      recognitionRef.current?.stop();
+      setListening(false);
+      return;
+    }
+    const rec = new SpeechRecognition();
+    rec.lang = "bn-BD,en-US";
+    rec.interimResults = false;
+    rec.maxAlternatives = 1;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rec.onresult = (e: any) => {
+      const transcript = e.results[0][0].transcript;
+      setInput(prev => (prev ? prev + " " : "") + transcript);
+      setListening(false);
+    };
+    rec.onerror = () => setListening(false);
+    rec.onend = () => setListening(false);
+    recognitionRef.current = rec;
+    rec.start();
+    setListening(true);
+    onToast("Listening… speak now", "info");
   }
 
   /* Refs for callbacks */
@@ -260,9 +335,9 @@ export function ChatBot({ notes, onCreateNote, onUpdateNote, onDeleteNote, onOpe
   const handleSend = useCallback(async () => {
     const text = input.trim();
     if (!text || loading) return;
-    const currentActive = getActiveProvider();
-    if (!currentActive) {
-      onToastRef.current("Select an AI model in Settings → AI Settings first", "error");
+    if (!hasKeys) {
+      setShowKeyManager(true);
+      onToastRef.current("Add an API key first — click here to open settings", "error");
       return;
     }
     burstSparkles();
@@ -271,26 +346,117 @@ export function ChatBot({ notes, onCreateNote, onUpdateNote, onDeleteNote, onOpe
     setInput("");
     addDisplay({ role: "user", content: text });
     setLoading(true);
-    const newHistory: ChatMessage[] = [...history, { role: "user", content: text }];
+
+    const startMs = Date.now();
+    let currentHistory: AiMessage[] = [...history, { role: "user", content: text }];
+    const allToolCallNames: string[] = [];
+    let totalUsage = { prompt: 0, completion: 0, total: 0 };
+    let finalReply = "";
+    let respModel = currentModel;
+    let respProvider = currentProvider;
+
     try {
-      const result = await callAI(text, history, toolCallbacksRef.current);
+      let isFirstCall = true;
+      let continueLoop = true;
+
+      while (continueLoop) {
+        const payload = isFirstCall
+          ? { message: text, history }
+          : { history: currentHistory };
+        isFirstCall = false;
+
+        const resp = await aiChat(payload);
+
+        respModel = resp.model || respModel;
+        respProvider = resp.provider || respProvider;
+        if (resp.model) setCurrentModel(resp.model);
+        if (resp.provider) setCurrentProvider(resp.provider);
+        if (resp.usage) {
+          totalUsage = {
+            prompt: totalUsage.prompt + resp.usage.prompt,
+            completion: totalUsage.completion + resp.usage.completion,
+            total: totalUsage.total + resp.usage.total,
+          };
+        }
+
+        if (resp.done) {
+          finalReply = resp.reply ?? "";
+          continueLoop = false;
+        } else if (resp.toolCalls?.length) {
+          const assistantMsg: AiMessage = {
+            role: "assistant",
+            content: null,
+            tool_calls: resp.toolCalls.map(tc => ({
+              id: tc.id,
+              function: { name: tc.name, arguments: JSON.stringify(tc.args) },
+            })),
+          };
+          currentHistory = [...currentHistory, assistantMsg];
+
+          const toolResults: Array<{ id: string; name: string; result: string }> = [];
+          for (const tc of resp.toolCalls) {
+            allToolCallNames.push(tc.name);
+            const result = await executeTool(tc.name, tc.args, toolCallbacksRef.current);
+            toolResults.push({ id: tc.id, name: tc.name, result });
+            currentHistory = [
+              ...currentHistory,
+              { role: "tool", content: result, tool_call_id: tc.id, name: tc.name },
+            ];
+          }
+
+          const nextResp = await aiChat({ history: currentHistory, toolResults });
+          respModel = nextResp.model || respModel;
+          respProvider = nextResp.provider || respProvider;
+          if (nextResp.model) setCurrentModel(nextResp.model);
+          if (nextResp.provider) setCurrentProvider(nextResp.provider);
+          if (nextResp.usage) {
+            totalUsage = {
+              prompt: totalUsage.prompt + nextResp.usage.prompt,
+              completion: totalUsage.completion + nextResp.usage.completion,
+              total: totalUsage.total + nextResp.usage.total,
+            };
+          }
+          if (nextResp.done) {
+            finalReply = nextResp.reply ?? "";
+            continueLoop = false;
+          }
+        } else {
+          continueLoop = false;
+        }
+      }
+
       addDisplay({
         role: "assistant",
-        content: result.reply,
-        toolCalls: result.toolCalls.length ? result.toolCalls : undefined,
-        usage: result.usage,
-        durationMs: result.durationMs,
+        content: finalReply,
+        toolCalls: allToolCallNames.length ? allToolCallNames : undefined,
+        usage: totalUsage.total > 0 ? totalUsage : undefined,
+        durationMs: Date.now() - startMs,
       });
-      setHistory([...newHistory, { role: "assistant", content: result.reply }]);
-      setTotalTokens(prev => prev + (result.usage?.total ?? 0));
+
+      const updatedHistory: AiMessage[] = [
+        ...history,
+        { role: "user", content: text },
+        { role: "assistant", content: finalReply },
+      ];
+      setHistory(updatedHistory);
+      setTotalTokens(prev => prev + (totalUsage.total ?? 0));
+      setHasKeys(true);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Unknown error";
+      const isNoKeys = msg.includes("NO_KEYS") || msg.includes("No API keys");
+      if (isNoKeys) setHasKeys(false);
       addDisplay({ role: "assistant", content: msg, error: true });
+      setAiError({
+        provider: respProvider || "unknown",
+        model: respModel || "unknown",
+        message: msg,
+        code: isNoKeys ? "NO_KEYS" : undefined,
+      });
     } finally {
       setLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [input, loading, history]);
+  }, [input, loading, history, hasKeys, currentModel, currentProvider]);
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
@@ -299,19 +465,30 @@ export function ChatBot({ notes, onCreateNote, onUpdateNote, onDeleteNote, onOpe
   function clearChat() { setMessages([]); setHistory([]); setTotalTokens(0); setExpandedDetails(new Set()); }
 
   const hasUnread = messages.length > 0;
-  const providerLabel = active ? `${active.provider} · ${active.model}` : "No model — configure in Settings";
+  const providerLabel = currentModel
+    ? `${PROVIDER_LABELS[currentProvider] ?? currentProvider} · ${currentModel}`
+    : hasKeys === false
+      ? "No API keys — add keys to start"
+      : hasKeys === null
+        ? "Loading…"
+        : "Auto mode — ready";
 
   const SUGGESTIONS = [
     { icon: "✏️", text: "Create a note about today's tasks" },
     { icon: "⭐", text: "আমার সব starred note দেখাও" },
-    { icon: "🗑️", text: "Delete the first created note" },
+    { icon: "📊", text: "Show me stats about all my notes" },
     { icon: "📋", text: "Summarize my most recent note" },
+    { icon: "📑", text: "Duplicate the most recent note" },
+    { icon: "🌟", text: "Star all my notes at once" },
     { icon: "🔍", text: "Search notes about Bangladesh" },
     { icon: "🚀", text: "Create a random creative note" },
   ];
 
   return (
     <>
+      <AIKeyManager open={showKeyManager} onClose={() => { setShowKeyManager(false); getAiKeys().then(k => setHasKeys(k.length > 0)); }} onToast={onToast} />
+      <AIErrorPopup error={aiError} onDismiss={() => setAiError(null)} onOpenKeyManager={() => setShowKeyManager(true)} />
+
       {/* ════ GLOBAL STYLES ════ */}
       <style>{`
         @keyframes chatWindowIn {
@@ -411,6 +588,15 @@ export function ChatBot({ notes, onCreateNote, onUpdateNote, onDeleteNote, onOpe
           from { opacity:0; transform:translateY(-8px) scaleY(0.85); transform-origin:top; }
           to { opacity:1; transform:translateY(0) scaleY(1); }
         }
+        @keyframes micPulse {
+          0%,100% { box-shadow:0 0 0 0 rgba(239,68,68,0.4); }
+          50% { box-shadow:0 0 0 6px rgba(239,68,68,0); }
+        }
+        @keyframes copyPop {
+          0% { transform:scale(0.6); opacity:0; }
+          70% { transform:scale(1.15); }
+          100% { transform:scale(1); opacity:1; }
+        }
         .chatbot-particle { pointer-events:none; position:absolute; border-radius:50%; }
         .chatbot-msg-user { animation:msgRight 0.38s cubic-bezier(0.16,1,0.3,1) both; }
         .chatbot-msg-bot { animation:msgLeft 0.38s cubic-bezier(0.16,1,0.3,1) both; }
@@ -428,6 +614,10 @@ export function ChatBot({ notes, onCreateNote, onUpdateNote, onDeleteNote, onOpe
         .chatbot-close-btn { transition:all 0.25s cubic-bezier(0.16,1,0.3,1); }
         .chatbot-detail-btn:hover { color:#a5b4fc !important; background:rgba(99,102,241,0.1) !important; }
         .chatbot-detail-btn { transition:all 0.2s; }
+        .chatbot-export-btn:hover { color:#94a3b8 !important; background:rgba(99,102,241,0.12) !important; transform:scale(1.1); }
+        .chatbot-export-btn { transition:all 0.25s cubic-bezier(0.16,1,0.3,1); }
+        .chatbot-copy-btn:hover { opacity:1 !important; }
+        .chatbot-copy-btn { transition:all 0.2s; }
         .chat-scroll::-webkit-scrollbar { width:3px; }
         .chat-scroll::-webkit-scrollbar-thumb { background:rgba(99,102,241,0.3); border-radius:10px; }
         .chat-scroll::-webkit-scrollbar-track { background:transparent; }
@@ -440,7 +630,6 @@ export function ChatBot({ notes, onCreateNote, onUpdateNote, onDeleteNote, onOpe
 
       {/* ════ FAB BUTTON ════ */}
       <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 500 }}>
-        {/* Pulse rings */}
         {!open && [0, 1].map(i => (
           <div key={i} style={{
             position: "absolute", inset: 0, borderRadius: "50%",
@@ -468,7 +657,6 @@ export function ChatBot({ notes, onCreateNote, onUpdateNote, onDeleteNote, onOpe
             overflow: "hidden",
           }}
         >
-          {/* Shimmer */}
           {!open && (
             <div style={{
               position: "absolute", inset: 0, borderRadius: "50%",
@@ -480,7 +668,6 @@ export function ChatBot({ notes, onCreateNote, onUpdateNote, onDeleteNote, onOpe
           <div style={{ transition: "transform 0.3s cubic-bezier(0.16,1,0.3,1), opacity 0.2s", transform: open ? "rotate(90deg)" : "rotate(0)", display: "flex" }}>
             {open ? <X size={22} /> : <Wand2 size={22} />}
           </div>
-          {/* Unread badge */}
           {!open && hasUnread && (
             <div style={{
               position: "absolute", top: 2, right: 2,
@@ -498,7 +685,7 @@ export function ChatBot({ notes, onCreateNote, onUpdateNote, onDeleteNote, onOpe
       {open && (
         <div style={{
           position: "fixed", bottom: 94, right: 24, zIndex: 499,
-          width: 430, height: 660,
+          width: 430, height: 680,
           display: "flex", flexDirection: "column",
           borderRadius: 24, overflow: "hidden",
           animation: "chatWindowIn 0.45s cubic-bezier(0.16,1,0.3,1) both",
@@ -529,7 +716,6 @@ export function ChatBot({ notes, onCreateNote, onUpdateNote, onDeleteNote, onOpe
               <div style={{ position: "absolute", width: 300, height: 300, borderRadius: "50%", background: "radial-gradient(ellipse,rgba(99,102,241,0.15),transparent 70%)", top: "-10%", left: "-10%", animation: "auroraOrb1 12s ease-in-out infinite" }} />
               <div style={{ position: "absolute", width: 250, height: 250, borderRadius: "50%", background: "radial-gradient(ellipse,rgba(232,121,249,0.1),transparent 70%)", bottom: "-5%", right: "-5%", animation: "auroraOrb2 15s ease-in-out infinite" }} />
               <div style={{ position: "absolute", width: 180, height: 180, borderRadius: "50%", background: "radial-gradient(ellipse,rgba(96,165,250,0.08),transparent 70%)", top: "40%", right: "10%", animation: "au03 10s ease-in-out infinite" }} />
-              {/* Floating micro-particles */}
               {PARTICLES.slice(0, 14).map(p => (
                 <div key={p.id} className="chatbot-particle" style={{
                   left: `${p.x}%`, top: `${p.y}%`,
@@ -551,7 +737,6 @@ export function ChatBot({ notes, onCreateNote, onUpdateNote, onDeleteNote, onOpe
               borderBottom: "1px solid rgba(99,102,241,0.12)",
               flexShrink: 0,
             }}>
-              {/* Shimmer line at top */}
               <div style={{
                 position: "absolute", top: 0, left: 0, right: 0, height: 1,
                 background: "linear-gradient(90deg,transparent,rgba(139,92,246,0.8),rgba(232,121,249,0.6),rgba(99,102,241,0.8),transparent)",
@@ -577,8 +762,16 @@ export function ChatBot({ notes, onCreateNote, onUpdateNote, onDeleteNote, onOpe
                   overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                   display: "flex", alignItems: "center", gap: 4,
                 }}>
-                  <div style={{ width: 5, height: 5, borderRadius: "50%", background: active ? "#34d399" : "#ef4444", boxShadow: active ? "0 0 6px #34d399" : "none", flexShrink: 0, animation: active ? "g05 2s ease-in-out infinite" : "none" }} />
-                  {providerLabel}
+                  <div style={{
+                    width: 5, height: 5, borderRadius: "50%",
+                    background: hasKeys ? "#34d399" : "#ef4444",
+                    boxShadow: hasKeys ? "0 0 6px #34d399" : "none",
+                    flexShrink: 0,
+                    animation: hasKeys ? "g05 2s ease-in-out infinite" : "none",
+                  }} />
+                  {currentProvider && <span style={{ color: PROVIDER_COLORS[currentProvider] ?? "#818cf8", fontWeight: 700 }}>{PROVIDER_LABELS[currentProvider] ?? currentProvider}</span>}
+                  {currentProvider && currentModel && <span style={{ color: "#374151" }}> · </span>}
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{currentModel || (hasKeys ? "Auto mode" : providerLabel)}</span>
                 </div>
               </div>
 
@@ -593,6 +786,20 @@ export function ChatBot({ notes, onCreateNote, onUpdateNote, onDeleteNote, onOpe
                   <Atom size={9} color="#a78bfa" style={{ animation: "ro01 3s linear infinite" }} />
                   <span style={{ fontSize: 10, color: "#a78bfa", fontWeight: 800, fontFamily: "monospace" }}>{totalTokens.toLocaleString()}</span>
                 </div>
+              )}
+
+              {/* Key Manager button */}
+              <button onClick={() => setShowKeyManager(true)} className="chatbot-export-btn" title="Manage API Keys"
+                style={{ background: hasKeys === false ? "rgba(239,68,68,0.12)" : "none", border: hasKeys === false ? "1px solid rgba(239,68,68,0.3)" : "none", cursor: "pointer", color: hasKeys === false ? "#f87171" : "#374151", padding: "7px", borderRadius: 10, display: "flex" }}>
+                <Key size={14} />
+              </button>
+
+              {/* Export chat button */}
+              {messages.length > 0 && (
+                <button onClick={exportChat} className="chatbot-export-btn" title="Export chat"
+                  style={{ background: "none", border: "none", cursor: "pointer", color: "#374151", padding: "7px", borderRadius: 10, display: "flex" }}>
+                  <Download size={14} />
+                </button>
               )}
 
               <button onClick={clearChat} className="chatbot-clear-btn" title="Clear chat"
@@ -619,7 +826,6 @@ export function ChatBot({ notes, onCreateNote, onUpdateNote, onDeleteNote, onOpe
                   justifyContent: "center", textAlign: "center", padding: "16px 12px",
                   animation: "sl07 0.5s cubic-bezier(0.16,1,0.3,1)",
                 }}>
-                  {/* Big morphing blob */}
                   <div style={{ position: "relative", marginBottom: 20 }}>
                     <div style={{
                       width: 72, height: 72,
@@ -631,7 +837,6 @@ export function ChatBot({ notes, onCreateNote, onUpdateNote, onDeleteNote, onOpe
                     }}>
                       <Brain size={32} color="white" style={{ filter: "drop-shadow(0 0 8px rgba(255,255,255,0.8))", animation: "sc04 2s ease-in-out infinite" }} />
                     </div>
-                    {/* Orbiting particles */}
                     {[0, 1, 2].map(i => (
                       <div key={i} style={{
                         position: "absolute", width: 8, height: 8, borderRadius: "50%",
@@ -655,7 +860,7 @@ export function ChatBot({ notes, onCreateNote, onUpdateNote, onDeleteNote, onOpe
                     Intelligent AI Brain
                   </h3>
                   <p style={{ fontSize: 12, color: "#475569", lineHeight: 1.75, maxWidth: 290, marginBottom: 20 }}>
-                    Create · Edit · Delete · Search your notes<br />
+                    Create · Edit · Delete · Search · Stats · Duplicate<br />
                     <span style={{ color: "#6366f1", fontWeight: 600 }}>Bengali & English</span> — both supported ✨
                   </p>
 
@@ -714,7 +919,6 @@ export function ChatBot({ notes, onCreateNote, onUpdateNote, onDeleteNote, onOpe
                         wordBreak: "break-word",
                         boxShadow: "0 4px 24px rgba(79,70,229,0.35), inset 0 1px 0 rgba(255,255,255,0.15)",
                       }}>
-                        {/* Shimmer on user bubble */}
                         <div style={{
                           position: "absolute", inset: 0, borderRadius: "inherit",
                           background: "linear-gradient(120deg,transparent 30%,rgba(255,255,255,0.08) 50%,transparent 70%)",
@@ -749,29 +953,53 @@ export function ChatBot({ notes, onCreateNote, onUpdateNote, onDeleteNote, onOpe
                         {msg.error ? <Zap size={13} color="#f87171" /> : <Brain size={13} color="#818cf8" />}
                       </div>
                       <div style={{ maxWidth: "83%", minWidth: 0 }}>
-                        <div style={{
-                          position: "relative", overflow: "hidden",
-                          background: msg.error
-                            ? "rgba(239,68,68,0.06)"
-                            : "linear-gradient(135deg,rgba(20,16,50,0.9),rgba(15,12,38,0.95))",
-                          border: `1px solid ${msg.error ? "rgba(239,68,68,0.2)" : "rgba(99,102,241,0.18)"}`,
-                          color: msg.error ? "#fca5a5" : "#e2e8f0",
-                          borderRadius: "4px 18px 18px 18px",
-                          padding: "10px 14px", fontSize: 13, lineHeight: 1.7,
-                          wordBreak: "break-word", whiteSpace: "pre-wrap",
-                          boxShadow: msg.error ? "none" : "0 2px 20px rgba(99,102,241,0.1), inset 0 1px 0 rgba(255,255,255,0.04)",
-                          animation: msg.error ? "none" : "rainbowBorder 5s ease-in-out infinite",
-                        }}>
-                          {/* Subtle shimmer inside bot bubble */}
+                        <div style={{ position: "relative" }}>
+                          <div style={{
+                            position: "relative", overflow: "hidden",
+                            background: msg.error
+                              ? "rgba(239,68,68,0.06)"
+                              : "linear-gradient(135deg,rgba(20,16,50,0.9),rgba(15,12,38,0.95))",
+                            border: `1px solid ${msg.error ? "rgba(239,68,68,0.2)" : "rgba(99,102,241,0.18)"}`,
+                            color: msg.error ? "#fca5a5" : "#e2e8f0",
+                            borderRadius: "4px 18px 18px 18px",
+                            padding: "10px 14px", fontSize: 13, lineHeight: 1.7,
+                            wordBreak: "break-word", whiteSpace: "pre-wrap",
+                            boxShadow: msg.error ? "none" : "0 2px 20px rgba(99,102,241,0.1), inset 0 1px 0 rgba(255,255,255,0.04)",
+                            animation: msg.error ? "none" : "rainbowBorder 5s ease-in-out infinite",
+                          }}>
+                            {!msg.error && (
+                              <div style={{
+                                position: "absolute", inset: 0, borderRadius: "inherit",
+                                background: "linear-gradient(120deg,transparent 35%,rgba(99,102,241,0.04) 50%,transparent 65%)",
+                                animation: "sh04 6s ease infinite",
+                                pointerEvents: "none",
+                              }} />
+                            )}
+                            {msg.content}
+                          </div>
+
+                          {/* Copy button */}
                           {!msg.error && (
-                            <div style={{
-                              position: "absolute", inset: 0, borderRadius: "inherit",
-                              background: "linear-gradient(120deg,transparent 35%,rgba(99,102,241,0.04) 50%,transparent 65%)",
-                              animation: "sh04 6s ease infinite",
-                              pointerEvents: "none",
-                            }} />
+                            <button
+                              className="chatbot-copy-btn"
+                              onClick={() => copyMessage(msg.id, msg.content)}
+                              title="Copy message"
+                              style={{
+                                position: "absolute", top: 6, right: 6,
+                                width: 22, height: 22, borderRadius: 7,
+                                background: copiedId === msg.id ? "rgba(52,211,153,0.18)" : "rgba(99,102,241,0.12)",
+                                border: `1px solid ${copiedId === msg.id ? "rgba(52,211,153,0.35)" : "rgba(99,102,241,0.2)"}`,
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                cursor: "pointer", opacity: 0.7,
+                                animation: copiedId === msg.id ? "copyPop 0.25s cubic-bezier(0.16,1,0.3,1)" : "none",
+                              }}
+                            >
+                              {copiedId === msg.id
+                                ? <Check size={10} color="#34d399" />
+                                : <Copy size={10} color="#818cf8" />
+                              }
+                            </button>
                           )}
-                          {msg.content}
                         </div>
 
                         {/* Details */}
@@ -873,23 +1101,44 @@ export function ChatBot({ notes, onCreateNote, onUpdateNote, onDeleteNote, onOpe
               flexShrink: 0, position: "relative", zIndex: 2,
               background: "linear-gradient(180deg,rgba(99,102,241,0.02),rgba(7,6,18,0.6))",
             }}>
-              {/* Top shimmer */}
               <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, background: "linear-gradient(90deg,transparent,rgba(99,102,241,0.4),rgba(232,121,249,0.3),rgba(99,102,241,0.4),transparent)", animation: "sh17 4s ease-in-out infinite", backgroundSize: "200% 100%" }} />
 
-              {!active && (
-                <div style={{
-                  marginBottom: 9, padding: "8px 12px", borderRadius: 10,
-                  background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.18)",
-                  fontSize: 11.5, color: "#fca5a5", textAlign: "center",
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                  animation: "bo05 2.5s ease-in-out infinite",
-                }}>
-                  <Zap size={11} />
-                  No AI model selected — open Settings (⌘,) to configure
-                </div>
+              {hasKeys === false && (
+                <button
+                  onClick={() => setShowKeyManager(true)}
+                  style={{
+                    marginBottom: 9, padding: "8px 12px", borderRadius: 10, width: "100%",
+                    background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.18)",
+                    fontSize: 11.5, color: "#fca5a5", textAlign: "center",
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                    animation: "bo05 2.5s ease-in-out infinite", cursor: "pointer",
+                  }}>
+                  <Key size={11} />
+                  No API keys — click to add Gemini, Groq, OpenRouter keys
+                </button>
               )}
 
               <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+                {/* Voice input button */}
+                <button
+                  onClick={toggleVoice}
+                  title={listening ? "Stop listening" : "Voice input"}
+                  style={{
+                    width: 38, height: 38, borderRadius: 12, flexShrink: 0,
+                    background: listening
+                      ? "rgba(239,68,68,0.15)"
+                      : "rgba(30,27,60,0.5)",
+                    border: `1px solid ${listening ? "rgba(239,68,68,0.4)" : "rgba(99,102,241,0.2)"}`,
+                    color: listening ? "#f87171" : "#4b5563",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    cursor: "pointer",
+                    animation: listening ? "micPulse 1.2s ease-in-out infinite" : "none",
+                    transition: "all 0.2s",
+                  } as React.CSSProperties}
+                >
+                  {listening ? <MicOff size={15} /> : <Mic size={15} />}
+                </button>
+
                 <div style={{ flex: 1, position: "relative" }}>
                   <textarea
                     ref={inputRef}
@@ -916,7 +1165,6 @@ export function ChatBot({ notes, onCreateNote, onUpdateNote, onDeleteNote, onOpe
                       e.currentTarget.style.boxShadow = "inset 0 1px 0 rgba(255,255,255,0.03)";
                     }}
                   />
-                  {/* Character glow when typing */}
                   {input && (
                     <div style={{
                       position: "absolute", bottom: -2, left: 8, right: 8, height: 2, borderRadius: 1,
@@ -931,42 +1179,44 @@ export function ChatBot({ notes, onCreateNote, onUpdateNote, onDeleteNote, onOpe
                 <button
                   ref={sendBtnRef}
                   onClick={handleSend}
-                  disabled={!input.trim() || loading}
+                  disabled={!input.trim() || loading || hasKeys === false}
                   style={{
-                    width: 42, height: 42, borderRadius: 13, border: "none", flexShrink: 0,
-                    background: (!input.trim() || loading)
+                    width: 42, height: 42, borderRadius: 13, flexShrink: 0,
+                    background: (!input.trim() || loading || hasKeys === false)
                       ? "rgba(30,27,60,0.5)"
                       : "linear-gradient(135deg,#4f46e5,#7c3aed,#9333ea)",
-                    color: (!input.trim() || loading) ? "#374151" : "white",
+                    color: (!input.trim() || loading || hasKeys === false) ? "#374151" : "white",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    cursor: (!input.trim() || loading) ? "not-allowed" : "pointer",
+                    cursor: (!input.trim() || loading || hasKeys === false) ? "not-allowed" : "pointer",
                     transition: "all 0.2s cubic-bezier(0.16,1,0.3,1)",
-                    boxShadow: (!input.trim() || loading) ? "none" : "0 4px 20px rgba(79,70,229,0.45), 0 0 0 1px rgba(139,92,246,0.3)",
-                    animation: sendAnim ? "sendPulse 0.35s ease" : (input.trim() && !loading ? "g01 3s ease-in-out infinite" : "none"),
-                    position: "relative", overflow: "hidden",
+                    boxShadow: (!input.trim() || loading || hasKeys === false) ? "none" : "0 4px 20px rgba(79,70,229,0.4)",
+                    animation: sendAnim ? "sendPulse 0.4s ease" : "none",
+                    border: "1px solid rgba(99,102,241,0.2)",
                   }}
                 >
-                  {/* Shimmer on active send button */}
-                  {input.trim() && !loading && (
-                    <div style={{
-                      position: "absolute", inset: 0, borderRadius: "inherit",
-                      background: "linear-gradient(120deg,transparent 30%,rgba(255,255,255,0.2) 50%,transparent 70%)",
-                      animation: "sh04 2s ease infinite",
-                      pointerEvents: "none",
-                    }} />
+                  {loading ? (
+                    <div style={{ width: 16, height: 16, borderRadius: "50%", border: "2px solid rgba(99,102,241,0.3)", borderTopColor: "#818cf8", animation: "ro01 0.8s linear infinite" }} />
+                  ) : (
+                    <Send size={16} style={{ marginLeft: 1 }} />
                   )}
-                  {loading
-                    ? <div style={{ width: 16, height: 16, borderRadius: "50%", border: "2px solid rgba(99,102,241,0.3)", borderTopColor: "#818cf8", animation: "ro01 0.7s linear infinite" }} />
-                    : <Send size={16} style={{ transform: "translateX(1px)" }} />
-                  }
                 </button>
               </div>
 
-              <div style={{ marginTop: 8, textAlign: "center", fontSize: 10, color: "#1e1b4b", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
-                <FileText size={8} color="#1e1b4b" />
-                Enter to send · Shift+Enter for newline
+              {/* Footer hint */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginTop: 8 }}>
+                <span style={{ fontSize: 9.5, color: "#1f2937" }}>
+                  <kbd style={{ padding: "1px 5px", borderRadius: 4, background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.15)", fontSize: 9, color: "#4b5563" }}>Enter</kbd>
+                  {" "}send
+                </span>
+                <span style={{ fontSize: 9.5, color: "#1f2937" }}>
+                  <kbd style={{ padding: "1px 5px", borderRadius: 4, background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.15)", fontSize: 9, color: "#4b5563" }}>Shift+Enter</kbd>
+                  {" "}newline
+                </span>
+                <FileText size={9} color="#1f2937" />
+                <span style={{ fontSize: 9.5, color: "#1f2937" }}>markdown supported</span>
               </div>
             </div>
+
           </div>
         </div>
       )}

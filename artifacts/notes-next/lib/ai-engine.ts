@@ -127,6 +127,44 @@ export const TOOLS_OPENAI = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "get_note_stats",
+      description: "Get statistics about all notes: total count, starred, pinned, archived, trashed, total word count, longest note, shortest note, average words per note.",
+      parameters: { type: "object", properties: {}, required: [] },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "duplicate_note",
+      description: "Duplicate an existing note. Creates a copy with '[Copy]' appended to the title.",
+      parameters: {
+        type: "object",
+        properties: { id: { type: "string", description: "The note ID to duplicate" } },
+        required: ["id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "bulk_update_notes",
+      description: "Apply an update (starred, pinned, archived, trashed) to multiple notes at once. Pass a list of note IDs and the fields to update on all of them.",
+      parameters: {
+        type: "object",
+        properties: {
+          ids: { type: "array", items: { type: "string" }, description: "List of note IDs to update" },
+          starred: { type: "boolean" },
+          pinned: { type: "boolean" },
+          archived: { type: "boolean" },
+          trashed: { type: "boolean" },
+        },
+        required: ["ids"],
+      },
+    },
+  },
 ];
 
 // ─── Tool executor ────────────────────────────────────────────────────────────
@@ -140,7 +178,6 @@ export async function executeTool(
     if (name === "list_notes") {
       const notes = cb.listNotes();
       if (notes.length === 0) return "No notes found.";
-      // Sort by createdAt ascending so index 0 = oldest (first created)
       const sorted = [...notes].sort((a, b) => {
         if (!a.createdAt && !b.createdAt) return 0;
         if (!a.createdAt) return 1;
@@ -148,7 +185,7 @@ export async function executeTool(
         return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       });
       return JSON.stringify(sorted.map((n, i) => ({
-        index: i + 1, // 1 = first/oldest created
+        index: i + 1,
         id: n.id,
         title: n.title || "(Untitled)",
         preview: n.content.slice(0, 80),
@@ -184,6 +221,44 @@ export async function executeTool(
       return results.length === 0
         ? "No matching notes."
         : JSON.stringify(results.map(n => ({ id: n.id, title: n.title || "(Untitled)", preview: n.content.slice(0, 80) })));
+    }
+    if (name === "get_note_stats") {
+      const notes = cb.listNotes();
+      if (notes.length === 0) return JSON.stringify({ total: 0, message: "No notes yet." });
+      const wordCounts = notes.map(n => n.content.trim().split(/\s+/).filter(Boolean).length);
+      const totalWords = wordCounts.reduce((a, b) => a + b, 0);
+      const maxIdx = wordCounts.indexOf(Math.max(...wordCounts));
+      const minIdx = wordCounts.indexOf(Math.min(...wordCounts));
+      return JSON.stringify({
+        total: notes.length,
+        starred: notes.filter(n => n.starred).length,
+        pinned: notes.filter(n => n.pinned).length,
+        archived: notes.filter(n => n.archived).length,
+        trashed: notes.filter(n => n.trashed).length,
+        totalWords,
+        averageWordsPerNote: Math.round(totalWords / notes.length),
+        longestNote: { title: notes[maxIdx].title || "(Untitled)", words: wordCounts[maxIdx] },
+        shortestNote: { title: notes[minIdx].title || "(Untitled)", words: wordCounts[minIdx] },
+      });
+    }
+    if (name === "duplicate_note") {
+      const id = String(args.id ?? "");
+      const original = cb.listNotes().find(n => n.id === id);
+      if (!original) return JSON.stringify({ success: false, error: "Note not found." });
+      const copyTitle = `${original.title || "(Untitled)"} [Copy]`;
+      const note = await cb.createNote(copyTitle, original.content);
+      return JSON.stringify({ success: true, id: note.id, title: note.title });
+    }
+    if (name === "bulk_update_notes") {
+      const ids = (args.ids as string[]) ?? [];
+      if (!ids.length) return JSON.stringify({ success: false, error: "No IDs provided." });
+      const fields: Partial<NoteRef> = {};
+      if (typeof args.starred === "boolean") fields.starred = args.starred;
+      if (typeof args.pinned === "boolean") fields.pinned = args.pinned;
+      if (typeof args.archived === "boolean") fields.archived = args.archived;
+      if (typeof args.trashed === "boolean") fields.trashed = args.trashed;
+      const results = await Promise.all(ids.map(id => cb.updateNote(id, fields)));
+      return JSON.stringify({ success: true, updated: results.length, titles: results.map(n => n.title) });
     }
     return "Unknown tool.";
   } catch (e: unknown) {
@@ -240,6 +315,17 @@ const SYSTEM_PROMPT = `You are the sharpest, most intelligent AI assistant insid
 ### Updating
 - "star koro" / "star daw" → find note, update_note(id, starred=true)
 - "pin koro" → update_note(id, pinned=true)
+- "sab note star koro" → list_notes → bulk_update_notes(ids=[all ids], starred=true)
+
+### Stats
+- "আমার notes এর stats দেখাও" / "how many notes" → get_note_stats()
+
+### Duplicate
+- "note ta duplicate koro" / "copy banao" → list_notes → duplicate_note(id)
+
+### Bulk actions
+- "sab note archive koro" → list_notes → bulk_update_notes(ids=[all], archived=true)
+- "sab note unstar koro" → list_notes → bulk_update_notes(ids=[all], starred=false)
 
 ## DATA FORMAT from list_notes
 Each note has: { index, id, title, preview, createdAt, starred, pinned, archived, trashed }
@@ -253,6 +339,9 @@ Each note has: { index, id, title, preview, createdAt, starred, pinned, archived
 - delete_note(id) — permanently delete; call list_notes first to get the right ID
 - open_note(id) — open in editor
 - search_notes(query) — search by keyword
+- get_note_stats() — get statistics: total notes, starred, pinned, word counts, longest/shortest
+- duplicate_note(id) — create an identical copy of a note with "[Copy]" suffix
+- bulk_update_notes(ids, fields) — update starred/pinned/archived/trashed on multiple notes at once
 
 Always take real action via tools. Never claim to do something without calling the tool.`;
 
@@ -459,7 +548,6 @@ export async function callAI(
 
   if (provider === "anthropic") return callAnthropic(key, model, messages, cb);
   if (provider === "gemini") {
-    // also check compat key
     const geminiKey = key || localStorage.getItem("smart-ins-note-gemini-key") || "";
     return callGemini(geminiKey, model, messages, cb);
   }

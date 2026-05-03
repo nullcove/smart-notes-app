@@ -15,6 +15,10 @@ function formatDate(iso: string) {
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 function wc(t: string) { return t.trim() ? t.trim().split(/\s+/).length : 0; }
+function stripHtml(html: string): string {
+  if (!html) return "";
+  return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
 
 function highlightText(text: string, query: string) {
   if (!query || !text) return <>{text}</>;
@@ -194,7 +198,7 @@ export function NoteList({ notes, view, search, selectedId, loading, onSelect, o
         {!loading && notes.length > 0 && (
           <div className="notes-list-body">
             {notes.map((note, i) => {
-              const words = wc(note.content);
+              const words = wc(stripHtml(note.content));
               const accent = noteAccent(note.id);
               const isSelected = selectedId === note.id;
               const isHovered = hoveredId === note.id;
@@ -245,7 +249,7 @@ export function NoteList({ notes, view, search, selectedId, loading, onSelect, o
                     overflow: "hidden", marginBottom: 8
                   }}>
                     {note.content
-                      ? search ? highlightText(note.content.slice(0, 130), search) : note.content
+                      ? (() => { const plain = stripHtml(note.content).slice(0, 130); return search ? highlightText(plain, search) : plain; })()
                       : <span style={{ fontStyle: "italic", color: "var(--text-faint)" }}>No content yet</span>}
                   </div>
 
